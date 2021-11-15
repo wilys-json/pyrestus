@@ -1,4 +1,5 @@
 import argparse
+import sys
 import os
 from randomize import randomize, HIDDEN_DATA
 
