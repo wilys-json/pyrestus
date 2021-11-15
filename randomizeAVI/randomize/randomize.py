@@ -7,6 +7,8 @@ import sys
 import cv2
 from copy import deepcopy
 
+np.random.seed(1337)
+
 def listdir(path):
    if os.path.exists(path):
        return glob.glob(os.path.join(path, "*"))
