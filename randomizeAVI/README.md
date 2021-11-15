@@ -51,6 +51,7 @@ This program allows you to decide how much of the origin data is repeated so tha
 e.g. `python3 main.py --duplicate-factor 0.5` will shuffle again your data and repeat 50% of the data in the generated set.
 
 Make sure you input a floating pointing number of : 0 < number <= 1
+
 Default value: 0.3
 
 #### Customizing the output path
