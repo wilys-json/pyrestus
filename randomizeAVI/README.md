@@ -1,4 +1,4 @@
-# Randomizing AVI Data for Intra- and Inter-rater Reliability
+# Randomizing Visual Image/Video Data for Intra- and Inter-rater Reliability
 
 A mini Python program to randomize AVI data.
 
