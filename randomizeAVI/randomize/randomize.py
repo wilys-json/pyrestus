@@ -2,10 +2,8 @@ import os
 import pandas as pd
 import numpy as np
 import glob
-import argparse
-import sys
 import cv2
-from pathlib import Path
+from tqdm import tqdm
 from copy import deepcopy
 
 np.random.seed(1337)
@@ -75,12 +73,28 @@ def generate_files(shuffled_list, extension, folder='output'):
    file_df = pd.DataFrame(shuffled_list)
    file_df = file_df.reset_index()
 
+   tqdm.pandas()
+
+   """
+   # DEPRECATED: enumerating the rows.
+   
    for i, (index, file) in enumerate(file_df.values):
        if extension.intersection(VIDEO_FORMATS):
            generate_video(file, index, folder)
        else:
            generate_image(file, index, folder)
        print("generating {} / {} files...".format(i+1, len(file_df)))
+   """
+   if extension.intersection(VIDEO_FORMATS):
+       (file_df.reset_index()
+               .progress_apply(lambda row: generate_video(row[0],
+                                           row['index'],
+                                           folder), axis=1))
+   else:
+      (file_df.reset_index()
+              .progress_apply(lambda row: generate_image(row[0],
+                                          row['index'],
+                                          folder), axis=1))
 
    file_df.to_csv('.Randomized.csv', index=False, header=False)
 
