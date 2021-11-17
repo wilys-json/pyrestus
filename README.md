@@ -2,7 +2,7 @@
 
 Functions:
 
-- [Data Randomization](##Data-Randomization)
+- [Data Randomization](#Data-Randomization)
 
 ## Requirements
 
