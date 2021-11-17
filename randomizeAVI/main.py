@@ -1,6 +1,7 @@
 import argparse
 import sys
 import os
+from datetime import datetime
 from randomize import randomize, HIDDEN_DATA
 
 
@@ -10,7 +11,7 @@ if __name__ == '__main__':
     parser.add_argument('inputFolder', type=str, nargs='?', default='')
     parser.add_argument('-hide', action='store_false', default=True)
     parser.add_argument('+hide', action='store_true', default=False)
-    parser.add_argument('--output-folder', type=str, metavar='O', default='output')
+    parser.add_argument('--output-folder', type=str, metavar='O', default='')
     parser.add_argument('--duplicate-factor', type=float, metavar='Dup-Factor', default=0.3)
 
     args = parser.parse_args()
@@ -24,4 +25,9 @@ if __name__ == '__main__':
         sys.exit(0)
 
     print('Randomizing files in {}'.format(args.inputFolder))
-    randomize(args.inputFolder, args.duplicate_factor, args.output_folder)
+    output_folder = ('output_{}'.format(datetime.now()
+                                                .strftime("%Y-%m-%d_%H%M%S"))
+                      if not args.output_folder
+                      else args.output_folder)
+
+    randomize(args.inputFolder, args.duplicate_factor, output_folder)

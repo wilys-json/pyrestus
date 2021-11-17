@@ -77,7 +77,7 @@ def generate_files(shuffled_list, extension, folder='output'):
 
    """
    # DEPRECATED: enumerating the rows.
-   
+
    for i, (index, file) in enumerate(file_df.values):
        if extension.intersection(VIDEO_FORMATS):
            generate_video(file, index, folder)
@@ -102,7 +102,7 @@ def generate_files(shuffled_list, extension, folder='output'):
 def randomize(files_path, split_factor=0.3, output_folder='output'):
    assert os.path.exists(files_path), "File path not found."
    file_list = listdir(files_path)
-   extensions = set([file.split('.')[-1] for file in file_list])
+   extensions = set([(file.split('.')[-1]).lower() for file in file_list])
    invalid_formats = list(
                     extensions.difference(VIDEO_FORMATS.union(IMAGE_FORMATS))
                     )
