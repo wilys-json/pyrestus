@@ -61,13 +61,13 @@ When the program finishes, you shall find the randomized files in the `output/` 
 ### Unhiding the encoding file
 ---
 
-When the program randomizes the files and generate the shuffled & duplicated files by encoding each file with a number, it also generates a hidden matching list of the encoded file name with the respective original file called `Randomized.csv`. You can unhide this file by:
+When the program randomizes the files and generate the shuffled & duplicated files by encoding each file with a number, it also generates a hidden matching list of the encoded file name with the respective original file called `outputs/randomized_($timestamp).csv`. You can unhide this file by:
 
 1. Open Terminal, go to the program directory
 
 2. Type `python3 randomize -hide`
 
-You shall now see a file called `Randomized.csv`
+You shall now see a file called `outputs/randomized_($timestamp).csv`
 
 To hide this file again, do: `python3 randomize +hide`
 
