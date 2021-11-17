@@ -2,7 +2,7 @@
 
 Functions:
 
-- [Data Randomization](Data Randomization)
+- [Data Randomization](##Data-Randomization)
 
 ## Requirements
 
@@ -10,7 +10,7 @@ Functions:
 2. Python libraries:
 
 - `numpy`
-- `pandas`-
+- `pandas`
 - `opencv-python` (OpenCV)
 - `tqdm`
 
