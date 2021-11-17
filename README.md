@@ -2,10 +2,10 @@
 
 Functions:
 
-- [Data Randomization](## Data Randomization)
+- [Data Randomization](Data Randomization)
 
 ## Requirements
----
+
 1. Python 3.x
 2. Python libraries:
 
@@ -16,7 +16,7 @@ Functions:
 
 
 ## Installing Libraries & Dependencies
----
+
 ### MacOS
 
 1. Clone this repository: `git clone https://github.com/wlamuchk/DataProcessing`
@@ -30,7 +30,7 @@ Functions:
 
 1. Clone this repository: `git clone https://github.com/wlamuchk/DataProcessing`
 
-2. Dowload and install [Python3](#https://www.python.org/ftp/python/3.8.9/python-3.8.9-amd64.exe)
+2. Dowload and install [Python3](https://www.python.org/ftp/python/3.8.9/python-3.8.9-amd64.exe)
 
 3. Open Command Prompt
 
@@ -38,7 +38,7 @@ Functions:
 
 
 ## Data Randomization
----
+
 
 This module allows you to randomize video and image data.
 
