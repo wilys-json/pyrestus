@@ -10,8 +10,6 @@ def main():
     parser.add_argument('inputFolder', type=str, nargs='?', default='')
     parser.add_argument('-hide', action='store_false', default=True)
     parser.add_argument('+hide', action='store_true', default=False)
-    parser.add_argument('--output-folder',
-                        type=str, metavar='O', default='randomized')
     parser.add_argument('--duplicate-factor', type=float,
                         metavar='Dup-Factor', default=0.3)
 
@@ -21,7 +19,6 @@ def main():
     if not os.path.exists(OUTPUT_DIR):
         os.mkdir(OUTPUT_DIR)
 
-
     if args.hide: hide_files()
     else: unhide_files()
 
@@ -29,11 +26,11 @@ def main():
         sys.exit(0)
 
     print('Randomizing files in {}'.format(args.inputFolder))
-    output_folder = os.path.join(OUTPUT_DIR, '{}_{}'.format(args.output_folder,
-                                                            timestamp))
+    output_folder = os.path.join(OUTPUT_DIR,
+                                '{}_{}'.format(HIDDEN_DATA[1:], timestamp))
 
     randomize(timestamp, args.inputFolder, args.duplicate_factor, output_folder)
-
+    hide_files()
 
 if __name__ == '__main__':
     main()
