@@ -3,7 +3,7 @@ import sys
 import os
 from glob import glob
 from datetime import datetime
-from src import randomize, HIDDEN_DATA, OUTPUT_DIR
+from src import *
 
 def main():
     parser = argparse.ArgumentParser(prefix_chars='-+')
@@ -22,18 +22,8 @@ def main():
         os.mkdir(OUTPUT_DIR)
 
 
-    if args.hide:
-        for csv in glob(os.path.join(OUTPUT_DIR, "*")):
-            if (csv.startswith(os.path.join(OUTPUT_DIR, HIDDEN_DATA[1:]))
-                and csv.endswith('.csv')):
-                filename = csv.split(os.path.sep)[-1]
-                os.rename(csv, os.path.join(OUTPUT_DIR,"."+filename))
-    else:
-        for csv in glob(os.path.join(OUTPUT_DIR, ".*")):
-            if (csv.startswith(os.path.join(OUTPUT_DIR, HIDDEN_DATA))
-                and csv.endswith('.csv')):
-                filename = csv.split(os.path.sep)[-1]
-                os.rename(csv, os.path.join(OUTPUT_DIR, filename[1:]))
+    if args.hide: hide_files()
+    else: unhide_files()
 
     if not args.inputFolder:
         sys.exit(0)

@@ -1,2 +1,2 @@
 from .randomize import *
-HIDDEN_DATA = '.randomized'
+from .utils import *
