@@ -1,5 +1,6 @@
 data/
 output/
+output_*/
 .Randomized.csv
 
 randomize/__pycache__/

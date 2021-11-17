@@ -10,6 +10,8 @@ np.random.seed(1337)
 
 IMAGE_FORMATS = {'png', 'jpg', 'jpeg', 'bmp'}
 VIDEO_FORMATS = {'mp4', 'mov', 'avi'}
+HIDDEN_DATA = '.randomized'
+OUTPUT_DIR = 'outputs'
 
 def listdir(path):
    if os.path.exists(path):
@@ -39,7 +41,9 @@ def generate_video(video_file, idx, folder='output'):
    thickness = 2
 
 
-   out = cv2.VideoWriter('{}/{}.avi'.format(folder, str(idx)),cv2.VideoWriter_fourcc('M','J','P','G'), cap.get(cv2.CAP_PROP_FPS), (frame_width,frame_height))
+   out = cv2.VideoWriter('{}/{}.avi'.format(folder,
+        str(idx)), cv2.VideoWriter_fourcc('M','J','P','G'),
+        cap.get(cv2.CAP_PROP_FPS), (frame_width,frame_height))
    while cap.isOpened():
        ret, frame = cap.read()
        if ret:
@@ -63,11 +67,12 @@ def generate_image(image_file, idx, folder='output'):
     color = (255, 255, 255)
     thickness = 2
 
-    cv2.putText(img, str(idx), org, font, fontScale, color, thickness, cv2.LINE_AA)
+    cv2.putText(img, str(idx), org, font,
+                fontScale, color, thickness, cv2.LINE_AA)
     cv2.imwrite('{}/{}.png'.format(folder, str(idx)), img)
 
 
-def generate_files(shuffled_list, extension, folder='output'):
+def generate_files(timestamp, shuffled_list, extension, folder='output'):
    if not os.path.exists(folder):
        os.mkdir(folder)
    file_df = pd.DataFrame(shuffled_list)
@@ -96,22 +101,30 @@ def generate_files(shuffled_list, extension, folder='output'):
                                           row['index'],
                                           folder), axis=1))
 
-   file_df.to_csv('.Randomized.csv', index=False, header=False)
+   file_df.to_csv(os.path.join(OUTPUT_DIR,
+                               '{}_{}.csv'.format(HIDDEN_DATA, timestamp)),
+                  index=False, header=False)
 
 
-def randomize(files_path, split_factor=0.3, output_folder='output'):
+def randomize(timestamp, files_path, split_factor=0.3, output_folder='output'):
+
    assert os.path.exists(files_path), "File path not found."
+
    file_list = listdir(files_path)
    extensions = set([(file.split('.')[-1]).lower() for file in file_list])
    invalid_formats = list(
                     extensions.difference(VIDEO_FORMATS.union(IMAGE_FORMATS))
                     )
+
    if invalid_formats:
        raise ValueError('Invalid file formats: {}'.format(invalid_formats))
    if len(extensions.intersection(VIDEO_FORMATS)) > 1:
        raise ValueError('Multiple file type found. Please unify file formats.')
+
    print("Randomizing {} files".format(len(file_list)))
    file_list = shuffle(file_list, split_factor)
+
    print("Randomization done.\n {} files will be generated: ".format(len(file_list)))
-   generate_files(file_list, extensions, folder=output_folder)
-   print("Randomized files generated. Please checkout files in {}/ .".format(output_folder))
+   generate_files(timestamp, file_list, extensions, folder=output_folder)
+
+   print("Randomized files generated. Please checkout files in {} .".format(output_folder))

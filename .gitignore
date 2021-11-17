@@ -1,0 +1,9 @@
+data/
+output/
+outputs/
+output_*/
+.randomized_*.csv
+randomized_*.csv
+.Randomized.csv
+*/__pycache__/
+*/**/__pycache__/
