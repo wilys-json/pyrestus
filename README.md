@@ -5,7 +5,7 @@ Functions:
 - [Data Randomization](## Data Randomization)
 
 ## Requirements
-==
+---
 1. Python 3.x
 2. Python libraries:
 
@@ -16,7 +16,7 @@ Functions:
 
 
 ## Installing Libraries & Dependencies
-==
+---
 ### MacOS
 
 1. Clone this repository: `git clone https://github.com/wlamuchk/DataProcessing`
@@ -38,11 +38,13 @@ Functions:
 
 
 ## Data Randomization
-==
+---
+
 This module allows you to randomize video and image data.
 
 ### Basic Usage
---
+---
+
 You can randomize your AVI dataset by:
 
 *Note: change `python3` to `python` on Windows.*
@@ -57,7 +59,8 @@ where `$path/to/folder` is the path of the target
 When the program finishes, you shall find the randomized files in the `output/` folder
 
 ### Unhiding the encoding file
---
+---
+
 When the program randomizes the files and generate the shuffled & duplicated files by encoding each file with a number, it also generates a hidden matching list of the encoded file name with the respective original file called `Randomized.csv`. You can unhide this file by:
 
 1. Open Terminal, go to the program directory
@@ -70,7 +73,8 @@ To hide this file again, do: `python3 randomize +hide`
 
 
 ### Advanced Usage
---
+---
+
 #### Customizing the percentage of repeated(duplicated) files
 
 This program allows you to decide how much of the origin data is repeated so that you can examine the intra-rater reliability. To do so, add `--duplicate-factor $floating/point/number` to the command:
