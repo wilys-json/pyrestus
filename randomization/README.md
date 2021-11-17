@@ -1,11 +1,11 @@
 # Randomizing Visual Image/Video Data for Intra- and Inter-rater Reliability
 
-A mini Python program to randomize AVI data.
+A mini Python program to randomize data in common video / image formats.
 
 ## Requirements
 
 1. Python 3.x
-2. Python libraries: `numpy`, `pandas`, `opencv-python`
+2. Python libraries: `numpy`, `pandas`, `opencv-python`, `tqdm`
 
 ## Installing Libraries & Dependencies
 
