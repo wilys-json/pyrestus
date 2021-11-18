@@ -78,6 +78,10 @@ def generate_files(timestamp, shuffled_list, extension, folder='output'):
    file_df = pd.DataFrame(shuffled_list)
    file_df = file_df.reset_index()
 
+   file_df.to_csv(os.path.join(OUTPUT_DIR,
+                              '{}_{}.csv'.format(HIDDEN_DATA, timestamp)),
+                 index=False, header=False)
+
    tqdm.pandas()
 
    """
@@ -100,10 +104,6 @@ def generate_files(timestamp, shuffled_list, extension, folder='output'):
               .progress_apply(lambda row: generate_image(row[0],
                                           row['index'],
                                           folder), axis=1))
-
-   file_df.to_csv(os.path.join(OUTPUT_DIR,
-                               '{}_{}.csv'.format(HIDDEN_DATA, timestamp)),
-                  index=False, header=False)
 
 
 def randomize(timestamp, files_path, split_factor=0.3, output_folder='output'):
