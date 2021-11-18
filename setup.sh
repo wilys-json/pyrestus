@@ -6,10 +6,9 @@ echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $HOME/.zprofile
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Install Python3
-brew install python@3.7
+brew install python3
 
 # Install Dependencies
 pip3 install virtualenv virtualenv virtualenvwrapper
-python3 -m virtualenv venv
-source venv/bin/activate
+python3 -m virtualenv venv && source venv/bin/activate
 pip3 install -r requirements.txt
