@@ -7,3 +7,4 @@ randomized_*.csv
 .Randomized.csv
 */__pycache__/
 */**/__pycache__/
+venv/

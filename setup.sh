@@ -9,6 +9,6 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 brew install python3
 
 # Install Dependencies
-pip3 install virtualenv virtualenv virtualenvwrapper
+pip3 install virtualenv virtualenvwrapper
 python3 -m virtualenv venv && source venv/bin/activate
 pip3 install -r requirements.txt
