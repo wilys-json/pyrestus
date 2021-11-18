@@ -9,4 +9,4 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 brew install python
 
 # Install Dependencies
-python3 -m pip install -r requirements.txt
+pip3 install -r requirements.txt
