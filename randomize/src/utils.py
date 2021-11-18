@@ -7,7 +7,7 @@ from .randomize import OUTPUT_DIR, HIDDEN_DATA
 def hide_files():
     for csv in os.listdir(OUTPUT_DIR):
                 if platform == 'darwin':
-                    if (csv.startswith(os.path.join(OUTPUT_DIR, HIDDEN_DATA[1:]))
+                    if (csv.startswith(HIDDEN_DATA[1:])
                         and csv.endswith('.csv')):
                             filename = csv.split(os.path.sep)[-1]
                             os.rename(csv, os.path.join(OUTPUT_DIR,"."+filename))
@@ -17,7 +17,7 @@ def hide_files():
 def unhide_files():
     for csv in os.listdir(OUTPUT_DIR):
             if platform == 'darwin':
-                    if (csv.startswith(os.path.join(OUTPUT_DIR, HIDDEN_DATA))
+                    if (csv.startswith(HIDDEN_DATA)
                         and csv.endswith('.csv')):
                             filename = csv.split(os.path.sep)[-1]
                             os.rename(csv, os.path.join(OUTPUT_DIR, filename[1:]))
