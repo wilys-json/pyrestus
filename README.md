@@ -34,7 +34,7 @@ Functions:
 
 3. Open Command Prompt
 
-4. Type `python -m pip install -r requirements.txt`
+4. Type `python -m pip install -r requirements-core.txt`
 
 
 ## Data Randomization
