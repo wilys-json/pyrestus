@@ -13,13 +13,21 @@ VIDEO_FORMATS = {'mp4', 'mov', 'avi'}
 HIDDEN_DATA = '.randomized'
 OUTPUT_DIR = 'outputs'
 
-def listdir(path):
+
+def listdir(path:str)->list:
+   """
+   List files in a directory.
+   """
    if os.path.exists(path):
        return glob.glob(os.path.join(path, "*"))
 
 
-def shuffle(file_list, split_factor=0.3):
-   assert (0 < split_factor <= 1), "Splitting Factor (f) can only be 0 < f <= 1."
+def shuffle(file_list:list, split_factor:float=0.3)->list:
+   """
+   Shuffle the input list and repeat `split_factor` percentage of list.
+   """
+   assert (0 < split_factor <= 1), \
+    "Splitting Factor (f) can only be 0 < f <= 1."
    list1 = deepcopy(file_list)
    list2 = deepcopy(file_list)
    np.random.shuffle(list1)
@@ -29,7 +37,11 @@ def shuffle(file_list, split_factor=0.3):
    return list1 + list2[split:]
 
 
-def generate_video(video_file, idx, folder='output'):
+def generate_video(video_file:str , idx:int, folder:str='output'):
+   """
+   Generate a video from `video_file` with `idx`
+   in the lower left corner in `folder`.
+   """
    cap = cv2.VideoCapture(video_file)
    frame_width = int(cap.get(3))
    frame_height = int(cap.get(4))
@@ -57,7 +69,11 @@ def generate_video(video_file, idx, folder='output'):
    cap.release()
 
 
-def generate_image(image_file, idx, folder='output'):
+def generate_image(image_file:str , idx:int , folder:str='output'):
+    """
+    Generate an image from `image_file` with `idx`
+    in the lower left corner to `folder`.
+    """
     img = cv2.imread(image_file)
     h, w, c = img.shape
     padding = 50
