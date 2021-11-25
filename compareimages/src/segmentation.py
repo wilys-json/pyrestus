@@ -7,13 +7,25 @@ from typing import List, Tuple, Union
 
 
 HSV_FILTERS = {
-    "blue" : (np.array([110,50,50]), np.array([130,255,255])),
-    "green" : (np.array([50, 50, 120]), np.array([70, 255, 255])),
-    "yellow" : (np.array([22, 93, 0]), np.array([45, 255, 255]))
+    "blue" : ((110,50,50),
+              (130,255,255)),
+    "green" : ((50, 50, 120),
+               (70, 255, 255)),
+    "yellow" : ((22, 93, 0),
+                (45, 255, 255))
 }
 
 CROPPING_RATIOS = (.256, .095, .953, .945)
 
+MORPHOLOGICAL_CORRECTION = (2,2)
+
+MORPHOLOGICAL_ITERATIONS = 10
+
+GAUSSIAN_SMOOTHING = (7,7)
+
+BINARY_THRESHOLD = 127
+
+OUTPUT_DIR = 'segmented'
 
 def cropImage(img:np.ndarray, cropping:Tuple[float],
               keep_array=True)->Union[np.ndarray, Image.Image]:
@@ -28,15 +40,17 @@ def cropImage(img:np.ndarray, cropping:Tuple[float],
 
     img = Image.fromarray(img)
     w, h = img.size
-    left_ratio, upper_ratio, right_ratio, lower_ratio = CROPPING_RATIOS
+    left_ratio, upper_ratio, right_ratio, lower_ratio = cropping
     img = img.crop((w * left_ratio, h * upper_ratio,
                     w * right_ratio, h * lower_ratio))
     if keep_array:
         return np.array(img)
+
     return img
 
 
 def filterImage(img:np.ndarray,
+                id:str,
                 hsv_filters:List[Tuple[Tuple[float]]])->np.ndarray:
     """
     Filter specific color range from `img` w.r.t. `hsv_filters`.
@@ -54,7 +68,8 @@ def filterImage(img:np.ndarray,
         imask = mask > 0
         color[imask] = img[imask]
 
-    if (color == blackimg).all(): print("No segmentation detected.")
+    if (color == blackimg).all():
+        print(f"Warning: No segmentation detected in {id}.")
 
     return color
 
@@ -95,11 +110,14 @@ def fillContours(img:np.ndarray)->Image.Image:
 
 
 
-def getSegmentationMask(img_path: str, cropping=True,
-                        hsv_filters=list(HSV_FILTERS.values()),
-                        correction=(2,2), morph_iter=10, smoothing=(7,7),
-                        binary_threshold=80, show=False, save=False):
-    img = cv2.imread(img_path)
+def getSegmentationMask(img_path: str, cropping:Tuple[float]=CROPPING_RATIOS,
+                        hsv_filters:List=list(HSV_FILTERS.values()),
+                        correction:Tuple[int]=MORPHOLOGICAL_CORRECTION,
+                        morph_iter:int=MORPHOLOGICAL_ITERATIONS,
+                        smoothing:Tuple[int]=GAUSSIAN_SMOOTHING,
+                        binary_threshold:int=BINARY_THRESHOLD,
+                        save:bool=True, **kwargs):
+
 
 
     """
@@ -107,28 +125,38 @@ def getSegmentationMask(img_path: str, cropping=True,
     segmentation images.
     """
 
-    # cropping
+    img = cv2.imread(img_path)
+
     if cropping:
-        img = cropImage(img, CROPPING_RATIOS)
+        img = cropImage(img=img, cropping=CROPPING_RATIOS)
 
-#     width, height, _ = img.shape
-    color = filterImage(img, hsv_filters)
+    color = filterImage(img=img, id=img_path, hsv_filters=hsv_filters)
 
-    thresh = extractSegment(color, correction=correction,
-                             iterations=morph_iter,
-                             smoothing=smoothing,
-                             binary_threshold=binary_threshold)
+    thresh = extractSegment(img=color,
+                            correction=correction,
+                            iterations=morph_iter,
+                            smoothing=smoothing,
+                            binary_threshold=binary_threshold)
 
+    if kwargs.get('show_original') == True:
+        Image.fromarray(img).show()
 
-    segmented_img = fillContours(thresh)
+    if kwargs.get('show_binary') == True:
+        Image.fromarray(thresh).show()
 
-    Image.fromarray(img).show()
-    segmented_img.show()
+    segmented_img = fillContours(img=thresh)
 
+    if kwargs.get('show_mask') == True:
+        segmented_img.show()
 
     if save:
         output_dir = kwargs.get('output_dir')
-        output_dir = Path(output_dir) if output_dir else Path('output')
+        timestamp = kwargs.get('timestamp')
+        output_dir = (Path(img_path).parent /
+                     (Path(output_dir) if output_dir
+                     else Path(f"{OUTPUT_DIR}-{timestamp}" if timestamp
+                     else Path(OUTPUT_DIR))))
+
         if not output_dir.is_dir():
             output_dir.mkdir()
         segmented_img.save(output_dir / f'{Path(img_path).stem}_segmented.png')

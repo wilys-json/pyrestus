@@ -1,18 +1,44 @@
 import pandas as pd
 import numpy as np
 import warnings
+import sys
 from pathlib import Path
 
-def makeRaterDataFrame(folder:str, ignore_null:bool=True,
+IMAGE_FORMATS = ['.jpg', '.png', '.jpeg', '.bmp']
+
+def containsDir(folder:str)->bool:
+    """
+    Check if a directory contains any subdirectories.
+    """
+    return all([f.is_dir() for f in Path(folder).iterdir()])
+
+def makeRaterDataFrame(folder:str)->pd.DataFrame:
+    """
+    Make a single column pd.DataFrame from a directory.
+    """
+    folder = Path(folder)
+    assert folder.is_dir(), f"Cannot find folder {folder}."
+    return pd.DataFrame((file for file in sorted(folder.iterdir())
+                         if (not file.is_dir())
+                          and (file.suffix in IMAGE_FORMATS)
+                          and (file.name[0] != '.')),
+                        columns=[folder.name])
+
+
+def makeRatersDataFrame(folder:str, ignore_null:bool=True,
                        warning:bool=True)->pd.DataFrame:
     """
-    Make pd.DataFrame from a directory containing Raters' rating.
+    Make pd.DataFrame from a directory containing raw segmentations
+    or segmentation masks from multiple Raters.
     """
 
     dfs = []
-    for f in Path(folder).iterdir():
-        dfs.append(pd.DataFrame((file for file in sorted(f.iterdir())
-                                 if not file.is_dir()), columns=[f.name]))
+    for subdir in Path(folder).iterdir():
+        if subdir.is_dir():
+            dfs.append(makeRaterDataFrame(subdir))
+        else:
+            print("Master folder can only contain multiple rater folders.")
+            sys.exit(0)
 
     main_df = pd.concat(dfs, axis=1)
     is_null = sum(main_df.isnull().values.any(axis=1))
