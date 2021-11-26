@@ -36,7 +36,7 @@ def makeRatersDataFrame(folder:str, ignore_null:bool=True,
     for subdir in Path(folder).iterdir():
         if subdir.is_dir():
             dfs.append(makeRaterDataFrame(subdir))
-            
+
 
     main_df = pd.concat(dfs, axis=1)
     is_null = sum(main_df.isnull().values.any(axis=1))
@@ -50,6 +50,7 @@ def makeRatersDataFrame(folder:str, ignore_null:bool=True,
                             unequal file numbers.""")
             if ignore_null:
                 warnings.warn(f"{is_null} columns(s) have/has been dropped")
+
 
     return main_df
 

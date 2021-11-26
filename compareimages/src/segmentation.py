@@ -155,11 +155,12 @@ def getSegmentationMask(img_path: str, cropping:Tuple[float]=CROPPING_RATIOS,
     if save:
         output_dir = kwargs.get('output_dir')
         timestamp = kwargs.get('timestamp')
-        output_dir = (Path(img_path).parent /
-                     (Path(output_dir) if output_dir
-                     else Path(f"{OUTPUT_DIR}-{timestamp}" if timestamp
-                     else Path(OUTPUT_DIR))))
+        output_dir = ((Path(output_dir) if output_dir
+                     else Path(OUTPUT_DIR)))
 
+        if not output_dir.is_dir():
+            output_dir.mkdir()
+        output_dir = output_dir / f'{Path(img_path).parent.stem}-{timestamp}'
         if not output_dir.is_dir():
             output_dir.mkdir()
         segmented_img.save(output_dir / f'{Path(img_path).stem}_segmented.png')

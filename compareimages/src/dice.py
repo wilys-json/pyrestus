@@ -6,13 +6,19 @@ from PIL import Image
 from itertools import combinations
 from .utils import inconsistentName
 
-def DiceCoefficient(img1: Image, img2: Image) -> float:
+def DiceCoefficient(img1: Image, img2: Image, **kwargs) -> float:
     """
     Naive Implementation of Dice score calculation.
     """
-    assert img1.size == img2.size, \
-    f"""Unequal image size: Image 1 has size {img1.size}
-    while Image 2 has size {img2.size}"""
+    if kwargs.get('ignore_error') == True:
+        if img1.size != img2.size:
+            return 0.0
+
+    else:
+        assert img1.size == img2.size, \
+        f"""Unequal image size at {kwargs.get('index')}:\n
+        ``{kwargs.get('raters')[0]}`'s image has size {img1.size}\n
+        while `{kwargs.get('raters')[1]}`'s image has size {img2.size}\n"""
 
     img1_arr = np.array(img1.resize((1,img1.size[0]*img1.size[1])))
     img2_arr = np.array(img2.resize((1,img2.size[0]*img2.size[1])))
@@ -24,7 +30,7 @@ def DiceCoefficient(img1: Image, img2: Image) -> float:
 
 
 
-def DiceScores(df:pd.DataFrame)->Tuple[pd.DataFrame, pd.DataFrame]:
+def DiceScores(df:pd.DataFrame, **kwargs)->Tuple[pd.DataFrame, pd.DataFrame]:
 
     """
     Calculate image-wise and average (inter-/intra) rater Dice scores.
@@ -33,8 +39,9 @@ def DiceScores(df:pd.DataFrame)->Tuple[pd.DataFrame, pd.DataFrame]:
     assert len(df.columns) > 1, \
     "DataFrame must contain more than 1 rater."
 
-    assert not inconsistentName(df), \
-    "DataFrame contains inconsistent names. Please check file names again."
+    if kwargs.get('ignore_inconsistent_name') == False:
+        assert not inconsistentName(df), \
+        "DataFrame contains inconsistent names. Please check file names again."
 
 
     dice_df = pd.DataFrame()
@@ -44,7 +51,11 @@ def DiceScores(df:pd.DataFrame)->Tuple[pd.DataFrame, pd.DataFrame]:
         rater_a, rater_b = comb
         dice_df[f"Dice-{rater_a}-{rater_b}"] = df.progress_apply(
         lambda x : DiceCoefficient(Image.open(x[rater_a]),
-                                   Image.open(x[rater_b])),axis = 1)
+                                   Image.open(x[rater_b]),
+                                   index=x.name,
+                                   raters=(rater_a, rater_b),
+                                   ignore_error=kwargs.get('ignore_error')),
+                                   axis = 1)
 
     return (dice_df.set_index(indices),
             pd.DataFrame(dice_df.mean(axis=0), columns=['Dice Scores']))

@@ -10,3 +10,7 @@ randomized_*.csv
 venv/
 
 test/
+log/
+data/
+segmented/
+.DS_Store
