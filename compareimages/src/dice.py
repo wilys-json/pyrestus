@@ -30,8 +30,12 @@ def DiceScores(df:pd.DataFrame)->Tuple[pd.DataFrame, pd.DataFrame]:
     Calculate image-wise and average (inter-/intra) rater Dice scores.
     """
 
+    assert len(df.columns) > 1, \
+    "DataFrame must contain more than 1 rater."
+
     assert not inconsistentName(df), \
     "DataFrame contains inconsistent names. Please check file names again."
+
 
     dice_df = pd.DataFrame()
     tqdm.pandas()

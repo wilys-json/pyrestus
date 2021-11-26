@@ -144,7 +144,10 @@ def getSegmentationMask(img_path: str, cropping:Tuple[float]=CROPPING_RATIOS,
     if kwargs.get('show_binary') == True:
         Image.fromarray(thresh).show()
 
-    segmented_img = fillContours(img=thresh)
+    if kwargs.get('lines_only') == True:
+        segmented_img = Image.fromarray(thresh)
+    else:
+        segmented_img = fillContours(img=thresh)
 
     if kwargs.get('show_mask') == True:
         segmented_img.show()

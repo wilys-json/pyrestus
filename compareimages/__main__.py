@@ -17,6 +17,8 @@ def main():
                         default=False)
     parser.add_argument('-m', '--show-mask', action='store_true',
                         default=False)
+    parser.add_argument('-l', '--lines-only', action='store_true',
+                        default=False)
     parser.add_argument('--calculate-dice-score', action='store_true',
                         default=False)
 
@@ -43,8 +45,9 @@ def main():
                                           show_original=args.show_original,
                                           show_binary=args.show_binary,
                                           show_mask=args.show_mask,
+                                          lines_only=args.lines_only,
                                           timestamp=timestamp))
-        print(f"{len(df)} segmentation masks generated in {args.inputFolder}.")
+        print(f"{df.size} segmentation masks generated in {args.inputFolder}.")
 
 
 

@@ -10,7 +10,7 @@ def containsDir(folder:str)->bool:
     """
     Check if a directory contains any subdirectories.
     """
-    return all([f.is_dir() for f in Path(folder).iterdir()])
+    return all([f.is_dir() for f in Path(folder).iterdir() if f.name[0] != '.'])
 
 def makeRaterDataFrame(folder:str)->pd.DataFrame:
     """
@@ -36,9 +36,7 @@ def makeRatersDataFrame(folder:str, ignore_null:bool=True,
     for subdir in Path(folder).iterdir():
         if subdir.is_dir():
             dfs.append(makeRaterDataFrame(subdir))
-        else:
-            print("Master folder can only contain multiple rater folders.")
-            sys.exit(0)
+            
 
     main_df = pd.concat(dfs, axis=1)
     is_null = sum(main_df.isnull().values.any(axis=1))
