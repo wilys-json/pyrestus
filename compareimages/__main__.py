@@ -1,6 +1,7 @@
 import argparse
 import sys
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
 from datetime import datetime
@@ -25,24 +26,41 @@ def main():
                         default=False)
     parser.add_argument('--calculate-dice-score', action='store_true',
                         default=False)
+    parser.add_argument('--repeated-image', type=str, default='')
+    parser.add_argument('--no-csv-header', action='version', version=None,
+                        default=0)
+    parser.add_argument('--debug', action='store_true', default=False)
 
     args = parser.parse_args()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
-
-
     if not args.inputFolder:
         sys.exit(0)
 
+    input_dir = Path(args.inputFolder)
+    if args.repeated_image:
+        args.ignore_inconsistent_name = True
+        match_file_type = Path(args.repeated_image).suffix
+        assert match_file_type == '.csv', \
+            f"""Must provide .csv file for repeated image Dice.\n
+                {match_file_type} file was provided."""
 
-    if containsDir(args.inputFolder):
-        df = makeRatersDataFrame(args.inputFolder)
+        df = pd.read_csv(args.repeated_image, header=args.no_csv_header)
+        df = df.applymap(lambda x: (input_dir / x))
+
     else:
-        df = makeRaterDataFrame(args.inputFolder)
+        if containsDir(args.inputFolder):
+            df = makeRatersDataFrame(args.inputFolder)
+        else:
+            df = makeRaterDataFrame(args.inputFolder)
 
     tqdm.pandas()
 
-    df.to_html(f'log/DataFrame-{timestamp}.html')
+    if args.debug:
+        debug_log_dir = Path('log')
+        if not debug_log_dir.is_dir():
+            debug_log_dir.mkdir()
+        df.to_html((debug_log_dir / f'DataFrame-{timestamp}.html'))
 
     if args.generate_mask:
         print(f"Generating segmentation mask from {args.inputFolder}...")
@@ -55,6 +73,7 @@ def main():
                                           timestamp=timestamp))
         print(f"{df.size} segmentation masks generated in {args.inputFolder}.")
         sys.exit(0)
+
 
     if args.calculate_dice_score:
         output_dir = Path('outputs')
