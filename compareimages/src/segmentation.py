@@ -9,8 +9,8 @@ from typing import List, Tuple, Union
 HSV_FILTERS = {
     "blue" : ((110,50,50),
               (130,255,255)),
-    "green" : ((50, 50, 120),
-               (70, 255, 255)),
+    "green" : ((30, 0, 0),
+               (80, 255, 255)),
     "yellow" : ((22, 93, 0),
                 (45, 255, 255))
 }
@@ -27,7 +27,7 @@ BINARY_THRESHOLD = 127
 
 OUTPUT_DIR = 'segmented'
 
-def cropImage(img:np.ndarray, cropping:Tuple[float],
+def crop_image(img:np.ndarray, cropping:Tuple[float],
               keep_array=True)->Union[np.ndarray, Image.Image]:
     """
     Crop `img` w.r.t. the defined `cropping` ratio.
@@ -49,7 +49,7 @@ def cropImage(img:np.ndarray, cropping:Tuple[float],
     return img
 
 
-def filterImage(img:np.ndarray,
+def filter_image(img:np.ndarray,
                 id:str,
                 hsv_filters:List[Tuple[Tuple[float]]])->np.ndarray:
     """
@@ -61,8 +61,9 @@ def filterImage(img:np.ndarray,
     blackimg = deepcopy(color)
 
     for hsv_filter in hsv_filters:
-        if (color != blackimg).all():
-            return color
+        # if not (color == blackimg).all():
+        #     print(hsv_filter)
+        #     return color
         hsv_min, hsv_max = hsv_filter
         mask = cv2.inRange(hsv, hsv_min, hsv_max)
         imask = mask > 0
@@ -74,7 +75,7 @@ def filterImage(img:np.ndarray,
     return color
 
 
-def extractSegment(img:np.ndarray,
+def extract_segment(img:np.ndarray,
                    correction:Tuple[int]=(2,2),
                    iterations:int=10,
                    smoothing:Tuple[int]=(7,7),
@@ -95,7 +96,7 @@ def extractSegment(img:np.ndarray,
     return thresh
 
 
-def fillContours(img:np.ndarray)->Image.Image:
+def fill_contours(img:np.ndarray)->Image.Image:
 
     """
     Fill shape defined by a closed contour.
@@ -110,7 +111,7 @@ def fillContours(img:np.ndarray)->Image.Image:
 
 
 
-def getSegmentationMask(img_path: str, cropping:Tuple[float]=CROPPING_RATIOS,
+def get_segmentation_mask(img_path: str, cropping:Tuple[float]=CROPPING_RATIOS,
                         hsv_filters:List=list(HSV_FILTERS.values()),
                         correction:Tuple[int]=MORPHOLOGICAL_CORRECTION,
                         morph_iter:int=MORPHOLOGICAL_ITERATIONS,
@@ -128,11 +129,14 @@ def getSegmentationMask(img_path: str, cropping:Tuple[float]=CROPPING_RATIOS,
     img = cv2.imread(img_path)
 
     if cropping:
-        img = cropImage(img=img, cropping=CROPPING_RATIOS)
+        img = crop_image(img=img, cropping=CROPPING_RATIOS)
 
-    color = filterImage(img=img, id=img_path, hsv_filters=hsv_filters)
+    color = filter_image(img=img, id=img_path, hsv_filters=hsv_filters)
 
-    thresh = extractSegment(img=color,
+    # if kwargs.get('show_binary') == True:
+    #     Image.fromarray(color).show()
+
+    thresh = extract_segment(img=color,
                             correction=correction,
                             iterations=morph_iter,
                             smoothing=smoothing,
@@ -147,10 +151,11 @@ def getSegmentationMask(img_path: str, cropping:Tuple[float]=CROPPING_RATIOS,
     if kwargs.get('lines_only') == True:
         segmented_img = Image.fromarray(thresh)
     else:
-        segmented_img = fillContours(img=thresh)
+        segmented_img = fill_contours(img=thresh)
 
     if kwargs.get('show_mask') == True:
         segmented_img.show()
+
 
     if save:
         output_dir = kwargs.get('output_dir')

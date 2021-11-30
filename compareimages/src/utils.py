@@ -6,13 +6,13 @@ from pathlib import Path
 
 IMAGE_FORMATS = ['.jpg', '.png', '.jpeg', '.bmp']
 
-def containsDir(folder:str)->bool:
+def contains_dir(folder:str)->bool:
     """
     Check if a directory contains any subdirectories.
     """
     return all([f.is_dir() for f in Path(folder).iterdir() if f.name[0] != '.'])
 
-def makeRaterDataFrame(folder:str)->pd.DataFrame:
+def make_rater_dataframe(folder:str)->pd.DataFrame:
     """
     Make a single column pd.DataFrame from a directory.
     """
@@ -25,8 +25,8 @@ def makeRaterDataFrame(folder:str)->pd.DataFrame:
                         columns=[folder.name])
 
 
-def makeRatersDataFrame(folder:str, ignore_null:bool=True,
-                       warning:bool=True)->pd.DataFrame:
+def make_raters_dataframe(folder:str, ignore_null:bool=True,
+                          warning:bool=True)->pd.DataFrame:
     """
     Make pd.DataFrame from a directory containing raw segmentations
     or segmentation masks from multiple Raters.
@@ -35,7 +35,7 @@ def makeRatersDataFrame(folder:str, ignore_null:bool=True,
     dfs = []
     for subdir in Path(folder).iterdir():
         if subdir.is_dir():
-            dfs.append(makeRaterDataFrame(subdir))
+            dfs.append(make_rater_dataframe(subdir))
 
 
     main_df = pd.concat(dfs, axis=1)
@@ -55,7 +55,7 @@ def makeRatersDataFrame(folder:str, ignore_null:bool=True,
     return main_df
 
 
-def inconsistentName(df:pd.DataFrame)->bool:
+def inconsistent_name(df:pd.DataFrame)->bool:
     """
     Check if every row contains the same file name.
     """
@@ -64,6 +64,17 @@ def inconsistentName(df:pd.DataFrame)->bool:
 
     return df.apply(lambda files : len(set([file.name for file in files])) > 1,
                     axis=1).values.any()
+
+
+def correct_image_size(): pass
+
+def is_black_image(img:np.ndarray)->bool:
+
+    """
+    Check if Image is all black.
+    """
+    return (img == 0).all()
+
 
 # TODO: modify this function
 def color_values(val:float)->str:

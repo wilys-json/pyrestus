@@ -5,8 +5,10 @@ import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
 from datetime import datetime
-from src import (containsDir, makeRaterDataFrame,
-                 makeRatersDataFrame, getSegmentationMask, DiceScores)
+from src import (contains_dir, make_rater_dataframe, make_raters_dataframe,
+                 get_segmentation_mask, dice_scores, hausdorff_distances)
+
+OUTPUT_DIR = 'outputs'
 
 def main():
     parser = argparse.ArgumentParser()
@@ -30,12 +32,32 @@ def main():
     parser.add_argument('--no-csv-header', action='version', version=None,
                         default=0)
     parser.add_argument('--debug', action='store_true', default=False)
+    parser.add_argument('--calculate-hausdorff-distance', action='store_true',
+                        default=False)
+    parser.add_argument('--point-threshold', type=int, default=20)
 
     args = parser.parse_args()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
     if not args.inputFolder:
+        print("""No input folders given.
+         Usage: compaireimages $input_folder
+          [--get-segmentation-mask] / [--calculate-dice-score] /
+          [--calculate-hausdorff-distance]""")
         sys.exit(0)
+
+    if not any([args.calculate_dice_score,
+                args.generate_mask,
+                args.calculate_hausdorff_distance]):
+        print("""You must select any of these functions:\n
+         compaireimages $input_folder
+         [--get-segmentation-mask] / [--calculate-dice-score] /
+         [--calculate-hausdorff-distance]""")
+        sys.exit(0)
+
+    output_dir = Path(OUTPUT_DIR)
+    if not output_dir.is_dir():
+        output_dir.mkdir()
 
     input_dir = Path(args.inputFolder)
     if args.repeated_image:
@@ -49,15 +71,15 @@ def main():
         df = df.applymap(lambda x: (input_dir / x))
 
     else:
-        if containsDir(args.inputFolder):
-            df = makeRatersDataFrame(args.inputFolder)
+        if contains_dir(args.inputFolder):
+            df = make_raters_dataframe(args.inputFolder)
         else:
-            df = makeRaterDataFrame(args.inputFolder)
+            df = make_rater_dataframe(args.inputFolder)
 
     tqdm.pandas()
 
     if args.debug:
-        debug_log_dir = Path('log')
+        debug_log_dir = Path('.log')
         if not debug_log_dir.is_dir():
             debug_log_dir.mkdir()
         df.to_html((debug_log_dir / f'DataFrame-{timestamp}.html'))
@@ -65,27 +87,42 @@ def main():
     if args.generate_mask:
         print(f"Generating segmentation mask from {args.inputFolder}...")
         df.progress_applymap(
-            lambda x: getSegmentationMask(str(x), save=True,
+            lambda x: get_segmentation_mask(str(x), save=True,
                                           show_original=args.show_original,
                                           show_binary=args.show_binary,
                                           show_mask=args.show_mask,
                                           lines_only=args.lines_only,
                                           timestamp=timestamp))
         print(f"{df.size} segmentation masks generated in {args.inputFolder}.")
-        sys.exit(0)
 
 
-    if args.calculate_dice_score:
-        output_dir = Path('outputs')
-        image_wise_dice, average_dice = DiceScores(df,
+    elif args.calculate_dice_score:
+        print(f"Calculating Dice coefficients from data in {args.inputFolder}...")
+        image_wise_dice, average_dice = dice_scores(df,
                     ignore_error=args.ignore_error,
                     ignore_inconsistent_name=args.ignore_inconsistent_name)
 
-        if not output_dir.is_dir():
-            output_dir.mkdir()
-        image_wise_dice.to_html(output_dir / f"Image-Wise-Dice-{timestamp}.html")
-        average_dice.to_html(output_dir / f"Average-Dice-{timestamp}.html")
-        sys.exit(0)
+
+        image_wise_html = output_dir / f"Image-Wise-Dice-{timestamp}.html"
+        average_html = output_dir / f"Average-Dice-{timestamp}.html"
+
+        image_wise_dice.to_html(image_wise_html)
+        average_dice.to_html(average_html)
+
+        print(f"Dice coefficient results have been saved to: \
+                {image_wise_html} & {average_html}.")
+
+    elif args.calculate_hausdorff_distance:
+        print(f"Calculating Hausdorff Distance from data in {args.inputFolder}...")
+        image_wise_hausdorff = hausdorff_distances(df,
+                                ignore_error=args.ignore_error,
+                                point_threshold=args.point_threshold)
+
+        image_wise_hd_html = output_dir / f"Image-Wise-Hausdorff-Distance-{timestamp}.html"
+        image_wise_hausdorff.to_html(image_wise_hd_html)
+
+        print(f"Hausdorff Distance results have been saved to: \
+                {image_wise_hd_html}.")
 
 
 if __name__ == '__main__':

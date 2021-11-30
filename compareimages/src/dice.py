@@ -4,9 +4,9 @@ from typing import Tuple
 from tqdm import tqdm
 from PIL import Image
 from itertools import combinations
-from .utils import inconsistentName
+from .utils import inconsistent_name
 
-def DiceCoefficient(img1: Image, img2: Image, **kwargs) -> float:
+def dice_coefficient(img1: Image, img2: Image, **kwargs) -> float:
     """
     Naive Implementation of Dice score calculation.
     """
@@ -30,7 +30,7 @@ def DiceCoefficient(img1: Image, img2: Image, **kwargs) -> float:
 
 
 
-def DiceScores(df:pd.DataFrame, **kwargs)->Tuple[pd.DataFrame, pd.DataFrame]:
+def dice_scores(df:pd.DataFrame, **kwargs)->Tuple[pd.DataFrame, pd.DataFrame]:
 
     """
     Calculate image-wise and average (inter-/intra) rater Dice scores.
@@ -40,7 +40,7 @@ def DiceScores(df:pd.DataFrame, **kwargs)->Tuple[pd.DataFrame, pd.DataFrame]:
     "DataFrame must contain more than 1 rater."
 
     if kwargs.get('ignore_inconsistent_name') == False:
-        assert not inconsistentName(df), \
+        assert not inconsistent_name(df), \
         "DataFrame contains inconsistent names. Please check file names again."
 
 
@@ -50,7 +50,7 @@ def DiceScores(df:pd.DataFrame, **kwargs)->Tuple[pd.DataFrame, pd.DataFrame]:
     for comb in combinations(df.columns, 2):
         rater_a, rater_b = comb
         dice_df[f"Dice-{rater_a}-{rater_b}"] = df.progress_apply(
-        lambda x : DiceCoefficient(Image.open(x[rater_a]),
+        lambda x : dice_coefficient(Image.open(x[rater_a]),
                                    Image.open(x[rater_b]),
                                    index=x.name,
                                    raters=(rater_a, rater_b),
