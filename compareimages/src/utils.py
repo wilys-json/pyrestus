@@ -66,7 +66,8 @@ def inconsistent_name(df:pd.DataFrame)->bool:
                     axis=1).values.any()
 
 
-def correct_image_size(): pass
+def unify_image_size(): pass
+
 
 def is_black_image(img:np.ndarray)->bool:
 
@@ -76,7 +77,13 @@ def is_black_image(img:np.ndarray)->bool:
     return (img == 0).all()
 
 
-# TODO: modify this function
-def color_values(val:float)->str:
-    color = '' if val < 1.0 else 'green'
+def _color_values(val:float, flag_val:float,
+                  operator:str, color:str='green')->str:
+    color = '' if eval(f'{str(val)}{operator}{str(flag_val)}') else color
     return 'background-color: %s' % color
+
+def flag_red(val:float, flag_val:float, operater:str)->str:
+    return _color_values(val, flag_val, operator, 'red')
+
+def flag_green(val:float, flag_val:float, operator:str)->str:
+    return _color_values(val, flag_val, operator, 'green')

@@ -76,7 +76,7 @@ def hausdorff_distance(img1:np.ndarray, img2:np.ndarray,
         if (img1.shape != img2.shape
         or (is_black_image(img1))
         or (is_black_image(img2))):
-            return 0.0
+            return -1.0
 
         else:
             assert img1.shape == img2.shape, \
@@ -98,14 +98,14 @@ def hausdorff_distance(img1:np.ndarray, img2:np.ndarray,
 
     if kwargs.get('ignore_error'):
         if not (line1).all() or not (line2).all():
-            return 0.0
+            return -1.0
 
     point_threshold = kwargs.get('point_threshold')
 
     if point_threshold:
         if (len(line1.ravel()) < point_threshold
          or len(line2.ravel()) < point_threshold):
-            return 0.0
+            return -1.0
 
 
     return hausdorff_extractor.computeDistance(line1, line2)
@@ -117,6 +117,14 @@ def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:
     """
     Get Hausdorff Distance from all images in a DataFrame with image path.
     """
+
+    assert len(df.columns) > 1, \
+    "DataFrame must contain more than 1 rater."
+
+    if kwargs.get('ignore_inconsistent_name') == False:
+        assert not inconsistent_name(df), \
+        "DataFrame contains inconsistent names. Please check file names again."
+
 
     hd_df = pd.DataFrame()
     tqdm.pandas()

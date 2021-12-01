@@ -114,15 +114,42 @@ def main():
 
     elif args.calculate_hausdorff_distance:
         print(f"Calculating Hausdorff Distance from data in {args.inputFolder}...")
+
+        dropped_columns_message = None
         image_wise_hausdorff = hausdorff_distances(df,
                                 ignore_error=args.ignore_error,
                                 point_threshold=args.point_threshold)
 
         image_wise_hd_html = output_dir / f"Image-Wise-Hausdorff-Distance-{timestamp}.html"
-        image_wise_hausdorff.to_html(image_wise_hd_html)
+        zero_values = (image_wise_hausdorff == -1.0).any(axis=1)
+        hausdorff_table = image_wise_hausdorff.to_html()
+
+        if not zero_values.all():
+            dropped_columns_message = ', '.join(image_wise_hausdorff[zero_values].index)
+            image_wise_hausdorff = image_wise_hausdorff[~zero_values]
+
+
+        summary_hd_html = output_dir / f"Hausdorff-Distance-Summary-{timestamp}.html"
+        summary_df = pd.concat([image_wise_hausdorff.describe(),
+                              pd.DataFrame((image_wise_hausdorff.stack()
+                                                                .describe()),
+                                           columns=['Aggregated'])], axis = 1)
+        hausdorff_summary = summary_df.to_html()
+
+        if dropped_columns_message:
+            hausdorff_table += f"<h4>Note: Unable to calculate Hausdorff Distance for the following images: {dropped_columns_message}. -1 was assigned to the comparison.</h4>"
+            hausdorff_summary += f"<h4>Note: The following images were excluded: {dropped_columns_message}.</h4>"
+
+        with open(image_wise_hd_html, 'w') as image_wise:
+            image_wise.write(hausdorff_table)
+            image_wise.close()
+
+        with open(summary_hd_html, 'w') as summary:
+            summary.write(hausdorff_summary)
+            summary.close()
 
         print(f"Hausdorff Distance results have been saved to: \
-                {image_wise_hd_html}.")
+                {image_wise_hd_html} & {summary_hd_html}.")
 
 
 if __name__ == '__main__':
