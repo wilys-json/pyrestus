@@ -35,6 +35,8 @@ def main():
     parser.add_argument('--calculate-hausdorff-distance', action='store_true',
                         default=False)
     parser.add_argument('--point-threshold', type=int, default=20)
+    parser.add_argument('--compare-shape-only', action='store_true',
+                        default=False)
 
     args = parser.parse_args()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -100,6 +102,7 @@ def main():
         print(f"Calculating Dice coefficients from data in {args.inputFolder}...")
         image_wise_dice, average_dice = dice_scores(df,
                     ignore_error=args.ignore_error,
+                    shape_only=args.compare_shape_only,
                     ignore_inconsistent_name=args.ignore_inconsistent_name)
 
 
