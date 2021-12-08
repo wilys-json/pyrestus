@@ -2,8 +2,10 @@ import cv2
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from scipy.spatial.distance import directed_hausdorff
 from itertools import combinations
-from .utils import is_black_image
+from .utils import (is_black_image, create_overlapping_image,
+                    scale_down, draw_hausdorff_lines)
 
 def get_canny_edge(img:np.ndarray, threshold1=0, threshold2=255,
                 **kwargs)->np.ndarray:
@@ -11,10 +13,7 @@ def get_canny_edge(img:np.ndarray, threshold1=0, threshold2=255,
     Extract line by Canny Edge Method.
     """
     cnt = cv.Canny(img, threshold1, threshold2)
-    line = np.argwhere(cnt>0)
-    r, c = line.shape
-
-    return line.reshape(r,1,c)
+    return np.argwhere(cnt>0)
 
 
 def get_contour(img:np.ndarray, retrieve_mode:int=cv2.RETR_TREE,
@@ -24,45 +23,96 @@ def get_contour(img:np.ndarray, retrieve_mode:int=cv2.RETR_TREE,
     Extract line by cv2.findContours().
     """
     cnt, _ = cv2.findContours(img1, retrieve_mode, approximation)
+    r, _, c = cnt[0].shape
+    cnt_line = cnt[0].reshape(r,c)
 
-    return cnt[0]
+    return cnt_line
 
 
 def get_raw_points(img:np.ndarray, **kwargs)->np.ndarray:
     """
     Extract every point from binary image.
     """
-
-    line = np.argwhere(img>0)
-    r, c = line.shape
-
-    return line.reshape(r,1,c)
+    return np.argwhere(img>0)
 
 
 def get_thin_line(img:np.ndarray, **kwargs)->np.ndarray:
     """
     Extract line by thinning method.
     """
-    line = np.argwhere(cv2.ximgproc.thinning(img) >0)
-    r, c = line.shape
-
-    return line.reshape(r,1,c)
+    return np.argwhere(cv2.ximgproc.thinning(img) >0)
 
 
-def hausdorff_distance(img1:np.ndarray, img2:np.ndarray,
-                      hausdorff_extractor:cv2.HausdorffDistanceExtractor=cv2.createHausdorffDistanceExtractor(),
+# def hausdorff_distance(img1:np.ndarray, img2:np.ndarray,
+#                       hausdorff_extractor:cv2.HausdorffDistanceExtractor=cv2.createHausdorffDistanceExtractor(),
+#                       extraction_method:str='thin',
+#                       retrieve_mode:int=cv2.RETR_EXTERNAL,
+#                       approximation:int=cv2.CHAIN_APPROX_TC89_KCOS,
+#                       threshold1=0,
+#                       threshold2=255,
+#                       **kwargs)->float:
+#
+#     """
+#     Compute Hausdorff Distance of `img1` and `img2` processed with
+#     `extraction_method`.
+#     """
+#
+#
+#     extraction_methods = {
+#         "thin" : get_thin_line,
+#         "canny" : get_canny_edge,
+#         "contour" : get_contour,
+#         "raw_points" : get_raw_points
+#     }
+#
+#
+#     if kwargs.get('ignore_error'):
+#         if (img1.shape != img2.shape
+#         or (is_black_image(img1))
+#         or (is_black_image(img2))):
+#             return -1.0
+#
+#         else:
+#             assert img1.shape == img2.shape, \
+#             f"""Unequal image size at {kwargs.get('index')}:\n
+#             ``{kwargs.get('raters')[0]}`'s image has size {img1.shape}\n
+#             while `{kwargs.get('raters')[1]}`'s image has size {img2.shape}\n"""
+#
+#
+#     line1 = extraction_methods[extraction_method](img1,
+#                                                   retrieve_mode=retrieve_mode,
+#                                                   approximation=approximation,
+#                                                   threshold1=threshold1,
+#                                                   threshold2=threshold2)
+#     line2 = extraction_methods[extraction_method](img2,
+#                                                   retrieve_mode=retrieve_mode,
+#                                                   approximation=approximation,
+#                                                   threshold1=threshold1,
+#                                                   threshold2=threshold2)
+#
+#     if kwargs.get('ignore_error'):
+#         if not (line1).all() or not (line2).all():
+#             return -1.0
+#
+#     point_threshold = kwargs.get('point_threshold')
+#
+#     if point_threshold:
+#         if (len(line1.ravel()) < point_threshold
+#          or len(line2.ravel()) < point_threshold):
+#             return -1.0
+#
+#
+#     return hausdorff_extractor.computeDistance(line1, line2)
+
+
+
+def hausdorff_distance(img1:np.ndarray, img2: np.ndarray,
                       extraction_method:str='thin',
                       retrieve_mode:int=cv2.RETR_EXTERNAL,
                       approximation:int=cv2.CHAIN_APPROX_TC89_KCOS,
                       threshold1=0,
                       threshold2=255,
-                      **kwargs)->float:
-
-    """
-    Compute Hausdorff Distance of `img1` and `img2` processed with
-    `extraction_method`.
-    """
-
+                      **kwargs):
 
     extraction_methods = {
         "thin" : get_thin_line,
@@ -78,11 +128,11 @@ def hausdorff_distance(img1:np.ndarray, img2:np.ndarray,
         or (is_black_image(img2))):
             return -1.0
 
-        else:
-            assert img1.shape == img2.shape, \
-            f"""Unequal image size at {kwargs.get('index')}:\n
-            ``{kwargs.get('raters')[0]}`'s image has size {img1.shape}\n
-            while `{kwargs.get('raters')[1]}`'s image has size {img2.shape}\n"""
+    else:
+        assert img1.shape == img2.shape, \
+        f"""Unequal image size at {kwargs.get('index')}:\n
+        ``{kwargs.get('raters')[0]}`'s image has size {img1.shape}\n
+        while `{kwargs.get('raters')[1]}`'s image has size {img2.shape}\n"""
 
 
     line1 = extraction_methods[extraction_method](img1,
@@ -107,9 +157,12 @@ def hausdorff_distance(img1:np.ndarray, img2:np.ndarray,
          or len(line2.ravel()) < point_threshold):
             return -1.0
 
+    hAB, hBA = directed_hausdorff(line1,line2), directed_hausdorff(line2,line1)
+    hd, AtoB, BtoA = max(hAB[0], hBA[0]), hAB[1:], hBA[1:]
 
-    return hausdorff_extractor.computeDistance(line1, line2)
-
+    return (hd,
+            (hAB[0], tuple(line1[AtoB[0]][::-1]), tuple(line2[AtoB[1]][::-1])),
+            (hBA[0], tuple(line2[BtoA[0]][::-1]), tuple(line1[BtoA[1]][::-1])))
 
 
 def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:

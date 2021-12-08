@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 import warnings
 import sys
+import cv2
 from pathlib import Path
+from typing import Tuple
 
 IMAGE_FORMATS = ['.jpg', '.png', '.jpeg', '.bmp']
 
@@ -79,11 +81,90 @@ def is_black_image(img:np.ndarray)->bool:
 
 def _color_values(val:float, flag_val:float,
                   operator:str, color:str='green')->str:
+    """
+    Color a Pandas cell.
+    """
     color = '' if eval(f'{str(val)}{operator}{str(flag_val)}') else color
     return 'background-color: %s' % color
 
+
 def flag_red(val:float, flag_val:float, operater:str)->str:
+    """
+    Color a Pandas cell red.
+    """
     return _color_values(val, flag_val, operator, 'red')
 
+
 def flag_green(val:float, flag_val:float, operator:str)->str:
+    """
+    Color a Pandas cell green.
+    """
     return _color_values(val, flag_val, operator, 'green')
+
+
+def create_overlapping_image(img1: np.ndarray,
+                             img2:np.ndarray,
+                             alpha=0.5,
+                             beta=0.5,
+                             **kwargs)->np.ndarray:
+
+    """
+    Create an overlapping image from `img1` and `img2`.
+    Set transparency of `img1` with `alpha`.
+    Set transparency of `img2` with `beta`.
+    Add optional keyword argument `channels` : 'rgb' to covert to RGB.
+    """
+
+    if kwargs.get('ignore_error'):
+        r, c = min(img1.shape, img2.shape)
+        img1 = img1[:r, :c]
+        img2 = img2[:r, :c]
+
+    else:
+        assert img1.shape == img2.shape, \
+        "Images have different sizes."
+
+    if kwargs.get('channels') == 'rgb':
+        return cv2.cvtColor(cv2.addWeighted(img1, alpha,
+                                            img2, beta, 0), cv2.COLOR_GRAY2RGB)
+
+    return cv2.addWeighted(img1, alpha, img2, beta, 0)
+
+
+def scale_down(img:np.ndarray, scaling_factor:float=0.2)->np.ndarray:
+    """
+    Scale down an image w.r.t. `scaling_factor`.
+    """
+    height, width = img.shape[0], img.shape[1]
+    dim = (int(width * scaling_factor), int(height * scaling_factor))
+
+    return cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+
+
+def draw_hausdorff_lines(overlapped_img:np.ndarray,
+                         directed_hausdorff_AtoB:Tuple[float, Tuple[int, int]],
+                         directed_hausdorff_BtoA:Tuple[float, Tuple[int, int]],
+                         thickness:int=1):
+
+    """
+    Draw lines indicating directed Hausdorff Distance.
+    Green line indicates the minimum of directed Hausdorff Distance,
+    while Red line indicates the maxmum.
+    """
+
+    red = (255, 0, 0)
+    green = (0, 255, 0)
+
+    if len(overlapped_img.shape) < 3:
+        overlapped_img = cv2.cvtColor(overlapped_img, cv2.COLOR_GRAY2RGB)
+
+    min_directed_hd, max_directed_hd = sorted([directed_hausdorff_AtoB,
+                                               directed_hausdorff_BtoA])
+
+    min_starting_point, min_ending_point = min_directed_hd[1:]
+    cv2.line(overlapped_img, min_starting_point,
+             min_ending_point, green, thickness)
+
+    max_starting_point, max_ending_point = max_directed_hd[1:]
+    cv2.line(overlapped_img, max_starting_point,
+            max_ending_point, red, thickness)
