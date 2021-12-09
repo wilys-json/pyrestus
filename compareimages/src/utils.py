@@ -5,6 +5,7 @@ import sys
 import cv2
 from pathlib import Path
 from typing import Tuple
+from secrets import token_hex
 
 IMAGE_FORMATS = ['.jpg', '.png', '.jpeg', '.bmp']
 
@@ -124,12 +125,20 @@ def create_overlapping_image(img1: np.ndarray,
         assert img1.shape == img2.shape, \
         "Images have different sizes."
 
+    output = cv2.addWeighted(img1, alpha, img2, beta, 0)
+
     if kwargs.get('channels') == 'rgb':
-        return cv2.cvtColor(cv2.addWeighted(img1, alpha,
-                                            img2, beta, 0), cv2.COLOR_GRAY2RGB)
+        output = cv2.cvtColor(output, cv2.COLOR_GRAY2RGB)
 
-    return cv2.addWeighted(img1, alpha, img2, beta, 0)
+    output_dir = kwargs.get('output_dir')
 
+    if output_dir:
+        filename = kwargs.get('filename')
+        filename = ((output_dir / f'{filename}.png') if filename
+                    else (output_dir / f'{token_hex(4).upper()}.png'))
+        cv2.imwrite(filename, output)
+
+    return output
 
 def scale_down(img:np.ndarray, scaling_factor:float=0.2)->np.ndarray:
     """
@@ -168,3 +177,6 @@ def draw_hausdorff_lines(overlapped_img:np.ndarray,
     max_starting_point, max_ending_point = max_directed_hd[1:]
     cv2.line(overlapped_img, max_starting_point,
             max_ending_point, red, thickness)
+
+def create_overlapping_images(df:pd.DataFrame, output_dir:Path):
+    pass

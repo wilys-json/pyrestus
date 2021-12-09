@@ -18,8 +18,8 @@ def dice_coefficient(img1: np.ndarray, img2: np.ndarray, **kwargs) -> float:
     else:
         assert img1.shape == img2.shape, \
         f"""Unequal image size at {kwargs.get('index')}:\n
-        ``{kwargs.get('raters')[0]}`'s image has shape {img1.shape}\n
-        while `{kwargs.get('raters')[1]}`'s image has shape {img2.shape}\n"""
+        `{kwargs.get('raters')[0] if kwargs.get('raters') else 'The first'} image has shape {img1.shape}\n
+        while `{kwargs.get('raters')[1] if kwargs.get('raters') else 'The second'}` image has shape {img2.shape}\n"""
 
 
     intersection, union = ((np.intersect1d(img1, img2).shape[0] / 2,
@@ -84,6 +84,10 @@ def dice_scores(df:pd.DataFrame, **kwargs)->Tuple[pd.DataFrame, pd.DataFrame]:
                                    ignore_error=kwargs.get('ignore_error'),
                                    shape_only=kwargs.get('shape_only')),
                                    axis = 1)
+
+        if kwargs.get('create_overlaps'):
+            if not kwargs.get('output_dir'): continue
+
 
     return (dice_df.set_index(indices),
             pd.DataFrame(dice_df.mean(axis=0), columns=['Dice Scores']))

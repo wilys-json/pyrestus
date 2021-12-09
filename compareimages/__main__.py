@@ -10,6 +10,7 @@ from src import (contains_dir, make_rater_dataframe, make_raters_dataframe,
 
 OUTPUT_DIR = 'outputs'
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('inputFolder', type=str, nargs='?', default='')
@@ -36,6 +37,8 @@ def main():
                         default=False)
     parser.add_argument('--point-threshold', type=int, default=20)
     parser.add_argument('--compare-shape-only', action='store_true',
+                        default=False)
+    parser.add_argument('--create-overlaps', action='store_true',
                         default=False)
 
     args = parser.parse_args()
@@ -99,21 +102,29 @@ def main():
 
 
     elif args.calculate_dice_score:
+
+        output_dir = output_dir / f"Dice-{timestamp}"
+        output_dir.mkdir()
+
         print(f"Calculating Dice coefficients from data in {args.inputFolder}...")
         image_wise_dice, average_dice = dice_scores(df,
                     ignore_error=args.ignore_error,
                     shape_only=args.compare_shape_only,
-                    ignore_inconsistent_name=args.ignore_inconsistent_name)
+                    ignore_inconsistent_name=args.ignore_inconsistent_name
+                    output_dir=output_dir,
+                    create_overlapping_image=args.create_overlaps)
 
 
         image_wise_html = output_dir / f"Image-Wise-Dice-{timestamp}.html"
         average_html = output_dir / f"Average-Dice-{timestamp}.html"
+        descriptive_html = output_dir / f"Image-Wise-DescriptiveStats-{timestamp}.html"
 
         image_wise_dice.to_html(image_wise_html)
         average_dice.to_html(average_html)
+        image_wise_dice.describe().to_html(descriptive_html)
 
         print(f"Dice coefficient results have been saved to: \
-                {image_wise_html} & {average_html}.")
+                {image_wise_html}, {average_html}, {descriptive_html}.")
 
     elif args.calculate_hausdorff_distance:
         print(f"Calculating Hausdorff Distance from data in {args.inputFolder}...")
