@@ -135,13 +135,16 @@ def create_overlapping_image(img1: np.ndarray,
 
     if output_dir:
         raters = 'A-B' if not kwargs.get('raters') else kwargs.get('raters')
-        output_dir = output_dir / 'overlapped_images' / '-'.join(raters)
+        subdir = Path('overlapped_images') / '-'.join(raters)
+        output_dir = output_dir / subdir
         output_dir.mkdir(parents=True, exist_ok=True)
         filename = kwargs.get('filename')
-        filename = str((output_dir / f'{filename}') if filename
+        output_path = str((output_dir / f'{filename}') if filename
                     else (output_dir / f'{token_hex(4).upper()}'))
-        cv2.imwrite(filename, output)
-        return output, filename
+        filepath = str((subdir / f'{filename}') if filename
+                    else (subdir / f'{token_hex(4).upper()}'))
+        cv2.imwrite(output_path, output)
+        return output, filepath
 
     return output
 
@@ -205,12 +208,21 @@ def create_overlapping_images(img_col1: pd.Series, img_col2: pd.Series,
     return filepaths
 
 
+def is_float(val:str):
+    try:
+        float(val)
+        return True
+    except ValueError:
+        return False
+
+
 def make_hyperlink(val:str):
     """
     Styling function for making hyperlink from `#`-seperated string.
     """
     value, link = val.split('#')
-    return '<a href="{}">{}</a>'.format(link, value)
+    value = f'{float(value):.4f}' if is_float(value) else value
+    return f'<a href="{link}">{value}</a>'
 
 def read_binary(file:Path):
 

@@ -6,7 +6,8 @@ from tqdm import tqdm
 from pathlib import Path
 from datetime import datetime
 from src import (contains_dir, make_rater_dataframe, make_raters_dataframe,
-                 get_segmentation_mask, dice_scores, hausdorff_distances)
+                 get_segmentation_mask, dice_scores, hausdorff_distances,
+                 make_hyperlink)
 
 OUTPUT_DIR = 'outputs'
 
@@ -29,6 +30,8 @@ def make_dataframe(args: argparse.Namespace) -> pd.DataFrame:
 
         df = pd.read_csv(args.repeated_image, header=args.no_csv_header)
         df = df.applymap(lambda x: (input_dir / x))
+        df = df.set_index(np.apply_along_axis(lambda x : '-'.join(x),
+                          1, df.applymap(lambda x : x.name).values))
 
     else:
         if contains_dir(args.inputFolder):
@@ -58,9 +61,10 @@ def calculate_dice_score(df: pd.DataFrame, args: argparse.Namespace, **kwargs):
     output_dir.mkdir()
 
     print(f"Calculating Dice coefficients from data in {args.inputFolder}...")
-    image_wise_dice, average_dice = dice_scores(df,
+    image_wise_dice, average_dice, hyperlink_df = dice_scores(df,
                 ignore_error=args.ignore_error,
                 shape_only=args.compare_shape_only,
+                repeated_image=args.repeated_image,
                 ignore_inconsistent_name=args.ignore_inconsistent_name,
                 output_dir=output_dir,
                 create_overlapping_image=args.create_overlaps)
@@ -70,7 +74,11 @@ def calculate_dice_score(df: pd.DataFrame, args: argparse.Namespace, **kwargs):
     average_html = output_dir / f"Average-Dice-{timestamp}.html"
     descriptive_html = output_dir / f"Image-Wise-DescriptiveStats-{timestamp}.html"
 
-    image_wise_dice.to_html(image_wise_html)
+    if not hyperlink_df is None:
+        hyperlink_df.to_html(image_wise_html, escape=False)
+    else:
+        image_wise_dice.to_html(image_wise_html)
+
     average_dice.to_html(average_html)
     image_wise_dice.describe().to_html(descriptive_html)
 
