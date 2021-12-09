@@ -5,7 +5,7 @@ from typing import Tuple
 from tqdm import tqdm
 from PIL import Image
 from itertools import combinations
-from .utils import inconsistent_name
+from .utils import inconsistent_name, create_overlapping_images, read_binary
 
 def dice_coefficient(img1: np.ndarray, img2: np.ndarray, **kwargs) -> float:
     """
@@ -20,6 +20,10 @@ def dice_coefficient(img1: np.ndarray, img2: np.ndarray, **kwargs) -> float:
         f"""Unequal image size at {kwargs.get('index')}:\n
         `{kwargs.get('raters')[0] if kwargs.get('raters') else 'The first'} image has shape {img1.shape}\n
         while `{kwargs.get('raters')[1] if kwargs.get('raters') else 'The second'}` image has shape {img2.shape}\n"""
+
+    if kwargs.get('shape_only'):
+        img1 = _get_shape1d(img1)
+        img2 = _get_shape1d(img2)
 
 
     intersection, union = ((np.intersect1d(img1, img2).shape[0] / 2,
@@ -71,22 +75,33 @@ def dice_scores(df:pd.DataFrame, **kwargs)->Tuple[pd.DataFrame, pd.DataFrame]:
 
     dice_df = pd.DataFrame()
     tqdm.pandas()
+
     indices = np.vectorize(lambda x: x.name)(df[df.columns[0]].values)
-    df = df.applymap(lambda x : cv2.imread(str(x), cv2.IMREAD_GRAYSCALE))
-    if kwargs.get('shape_only'):
-        df = df.applymap(lambda x : _get_shape1d(x))
+    # df = df.applymap(lambda x : cv2.imread(str(x), cv2.IMREAD_GRAYSCALE))
+
+    # if kwargs.get('shape_only'):
+    #     df = df.applymap(lambda x : _get_shape1d(x))
+
     for comb in combinations(df.columns, 2):
         rater_a, rater_b = comb
         dice_df[f"Dice-{rater_a}-{rater_b}"] = df.progress_apply(
-        lambda x : dice_coefficient(x[rater_a],x[rater_b],
+        lambda x : dice_coefficient(read_binary(x[rater_a]),
+                                    read_binary(x[rater_b]),
                                    index=x.name,
                                    raters=(rater_a, rater_b),
                                    ignore_error=kwargs.get('ignore_error'),
                                    shape_only=kwargs.get('shape_only')),
                                    axis = 1)
 
-        if kwargs.get('create_overlaps'):
+        if kwargs.get('create_overlapping_image'):
             if not kwargs.get('output_dir'): continue
+            paths = create_overlapping_images(df[rater_a],
+                                              df[rater_b],
+                                              output_dir=kwargs.get('output_dir'),
+                                              indices=indices,
+                                              raters=(rater_a, rater_b))
+
+            temp_df = dice_df[f"Dice-{rater_a}-{rater_b}"].astype('string') + "#" + paths
 
 
     return (dice_df.set_index(indices),

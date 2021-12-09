@@ -15,6 +15,7 @@ def contains_dir(folder:str)->bool:
     """
     return all([f.is_dir() for f in Path(folder).iterdir() if f.name[0] != '.'])
 
+
 def make_rater_dataframe(folder:str)->pd.DataFrame:
     """
     Make a single column pd.DataFrame from a directory.
@@ -104,7 +105,7 @@ def flag_green(val:float, flag_val:float, operator:str)->str:
 
 
 def create_overlapping_image(img1: np.ndarray,
-                             img2:np.ndarray,
+                             img2: np.ndarray,
                              alpha=0.5,
                              beta=0.5,
                              **kwargs)->np.ndarray:
@@ -133,10 +134,14 @@ def create_overlapping_image(img1: np.ndarray,
     output_dir = kwargs.get('output_dir')
 
     if output_dir:
+        raters = 'A-B' if not kwargs.get('raters') else kwargs.get('raters')
+        output_dir = output_dir / 'overlapped_images' / '-'.join(raters)
+        output_dir.mkdir(parents=True, exist_ok=True)
         filename = kwargs.get('filename')
-        filename = ((output_dir / f'{filename}.png') if filename
-                    else (output_dir / f'{token_hex(4).upper()}.png'))
+        filename = str((output_dir / f'{filename}') if filename
+                    else (output_dir / f'{token_hex(4).upper()}'))
         cv2.imwrite(filename, output)
+        return output, filename
 
     return output
 
@@ -178,5 +183,35 @@ def draw_hausdorff_lines(overlapped_img:np.ndarray,
     cv2.line(overlapped_img, max_starting_point,
             max_ending_point, red, thickness)
 
-def create_overlapping_images(df:pd.DataFrame, output_dir:Path):
-    pass
+
+def create_overlapping_images(img_col1: pd.Series, img_col2: pd.Series,
+                              output_dir:Path, **kwargs):
+    """
+    Create a list of overlapping images from `img_col1` and `img_col2`
+    """
+    image_pairs = pd.concat([img_col1, img_col2], axis=1)
+
+    image_pairs.set_index(kwargs.get('indices'), inplace=True)
+    filepaths = []
+    for idx, img1, img2 in image_pairs.itertuples():
+        _, filepath=create_overlapping_image(read_binary(img1),
+                                             read_binary(img2),
+                                             channels=kwargs.get('channels'),
+                                             output_dir=output_dir,
+                                             raters=kwargs.get('raters'),
+                                             filename=idx, ignore_error=True)
+        filepaths += [filepath]
+
+    return filepaths
+
+
+def make_hyperlink(val:str):
+    """
+    Styling function for making hyperlink from `#`-seperated string.
+    """
+    value, link = val.split('#')
+    return '<a href="{}">{}</a>'.format(link, value)
+
+def read_binary(file:Path):
+
+    return cv2.imread(str(file), cv2.IMREAD_GRAYSCALE)
