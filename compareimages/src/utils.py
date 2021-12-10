@@ -155,6 +155,7 @@ def create_overlapping_image(img1: np.ndarray,
 
     return output
 
+
 def scale_down(img:np.ndarray, scaling_factor:float=0.2)->np.ndarray:
     """
     Scale down an image w.r.t. `scaling_factor`.
@@ -176,14 +177,19 @@ def draw_hausdorff_lines(overlapped_img:np.ndarray,
     while Red line indicates the maxmum.
     """
 
-    red = (255, 0, 0)
+    red = (0, 0, 255)
     green = (0, 255, 0)
 
     if len(overlapped_img.shape) < 3:
         overlapped_img = cv2.cvtColor(overlapped_img, cv2.COLOR_GRAY2RGB)
 
+
     min_directed_hd, max_directed_hd = sorted([directed_hausdorff_AtoB,
                                                directed_hausdorff_BtoA])
+
+    if (isinstance(min_directed_hd, float)
+     or isinstance(max_directed_hd, float)):
+        return
 
     min_starting_point, min_ending_point = min_directed_hd[1:]
     cv2.line(overlapped_img, min_starting_point,
@@ -199,17 +205,21 @@ def create_overlapping_images(img_col1: pd.Series, img_col2: pd.Series,
     """
     Create a list of overlapping images from `img_col1` and `img_col2`
     """
-    image_pairs = pd.concat([img_col1, img_col2], axis=1)
-
-    image_pairs.set_index(kwargs.get('indices'), inplace=True)
+    data = pd.concat([img_col1, img_col2, kwargs.get('distances')], axis=1)
+    data.set_index(kwargs.get('indices'), inplace=True)
     filepaths = []
-    for idx, img1, img2 in image_pairs.itertuples():
+    for row in data.itertuples():
+        distances = None
+        if kwargs.get('distances') is not None:
+            idx, img1, img2, distances = row
+        else:
+            idx, img1, img2 = row
         _, filepath=create_overlapping_image(read_binary(img1),
                                              read_binary(img2),
                                              channels=kwargs.get('channels'),
                                              output_dir=output_dir,
                                              raters=kwargs.get('raters'),
-                                             distances=kwargs.get('distances'),
+                                             distances=distances,
                                              scale_down=kwargs.get('scale_down'),
                                              filename=idx, ignore_error=True)
         filepaths += [filepath]

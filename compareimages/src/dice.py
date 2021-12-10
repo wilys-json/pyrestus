@@ -112,7 +112,8 @@ def dice_scores(df:pd.DataFrame, **kwargs)->Tuple[pd.DataFrame, pd.DataFrame]:
                                               df[rater_b],
                                               output_dir=kwargs.get('output_dir'),
                                               indices=indices,
-                                              raters=(rater_a, rater_b))
+                                              raters=(rater_a, rater_b),
+                                              scale_down=kwargs.get('scale_down'))
 
             temp_df = pd.DataFrame(dice_df[f"Dice-{rater_a}-{rater_b}"]
                                     .astype('string') + "#" + paths)

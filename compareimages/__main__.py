@@ -56,8 +56,7 @@ def generate_mask(df: pd.DataFrame, args: argparse.Namespace, **kwargs):
 
 def calculate_dice_score(df: pd.DataFrame, args: argparse.Namespace, **kwargs):
     timestamp = kwargs.get('timestamp')
-    output_dir = kwargs.get('output_dir')
-    output_dir = output_dir / f"Dice-{timestamp}"
+    output_dir = kwargs.get('output_dir') / f"Dice-{timestamp}"
     output_dir.mkdir()
 
     print(f"Calculating Dice coefficients from data in {args.inputFolder}...")
@@ -90,15 +89,24 @@ def calculate_hausdorff_distance(df: pd.DataFrame, args: argparse.Namespace,
                                  **kwargs):
     print(f"Calculating Hausdorff Distance from data in {args.inputFolder}...")
     timestamp = kwargs.get('timestamp')
-    output_dir = kwargs.get('output_dir')
+    output_dir = kwargs.get('output_dir') / f"Hausdorff_Distance_{timestamp}"
+    output_dir.mkdir()
     dropped_columns_message = None
-    image_wise_hausdorff = hausdorff_distances(df,
+    image_wise_hausdorff, hyperlink_df = hausdorff_distances(df,
                             ignore_error=args.ignore_error,
-                            point_threshold=args.point_threshold)
+                            point_threshold=args.point_threshold,
+                            repeated_image=args.repeated_image,
+                            output_dir=output_dir,
+                            create_overlapping_image=args.create_overlaps)
 
     image_wise_hd_html = output_dir / f"Image-Wise-Hausdorff-Distance-{timestamp}.html"
     zero_values = (image_wise_hausdorff == -1.0).any(axis=1)
-    hausdorff_table = image_wise_hausdorff.to_html()
+
+    if not hyperlink_df is None:
+        hausdorff_table = hyperlink_df.to_html(escape=False)
+    else:
+        hausdorff_table = image_wise_hausdorff.to_html()
+
 
     if not zero_values.all():
         dropped_columns_message = ', '.join(image_wise_hausdorff[zero_values].index)
