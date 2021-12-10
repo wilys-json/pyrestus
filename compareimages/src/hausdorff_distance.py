@@ -160,9 +160,12 @@ def hausdorff_distance(img1:np.ndarray, img2: np.ndarray,
     hAB, hBA = directed_hausdorff(line1,line2), directed_hausdorff(line2,line1)
     hd, AtoB, BtoA = max(hAB[0], hBA[0]), hAB[1:], hBA[1:]
 
-    return (hd,
-            (hAB[0], tuple(line1[AtoB[0]][::-1]), tuple(line2[AtoB[1]][::-1])),
-            (hBA[0], tuple(line2[BtoA[0]][::-1]), tuple(line1[BtoA[1]][::-1])))
+    # #  To be released
+    # return (hd,
+    #         (hAB[0], tuple(line1[AtoB[0]][::-1]), tuple(line2[AtoB[1]][::-1])),
+    #         (hBA[0], tuple(line2[BtoA[0]][::-1]), tuple(line1[BtoA[1]][::-1])))
+
+    return hd
 
 
 def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:
@@ -182,7 +185,7 @@ def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:
     hd_df = pd.DataFrame()
     tqdm.pandas()
     indices = np.vectorize(lambda x: x.name)(df[df.columns[0]].values)
-    extractor = cv2.createHausdorffDistanceExtractor()
+    # extractor = cv2.createHausdorffDistanceExtractor()
     df = df.applymap(lambda x : cv2.imread(str(x), cv2.IMREAD_GRAYSCALE))
 
     for comb in combinations(df.columns, 2):
@@ -190,7 +193,6 @@ def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:
         print(f'Comparing {rater_a} and {rater_b} ...')
         hd_df[f"Hausdorff_Distance-{rater_a}-{rater_b}"] = df.progress_apply(
         lambda x : hausdorff_distance(x[rater_a], x[rater_b],
-                                     hausdorff_extractor=extractor,
                                      index=x.name,
                                      raters=(rater_a, rater_b),
                                      ignore_error=kwargs.get('ignore_error'),

@@ -131,6 +131,13 @@ def create_overlapping_image(img1: np.ndarray,
     if kwargs.get('channels') == 'rgb':
         output = cv2.cvtColor(output, cv2.COLOR_GRAY2RGB)
 
+    if kwargs.get('distances'):
+        hAB, hBA = kwargs.get('distances')
+        draw_hausdorff_lines(output, hAB, hBA)
+
+    if kwargs.get('scale_down'):
+        output = scale_down(output, kwargs.get('scale_down'))
+
     output_dir = kwargs.get('output_dir')
 
     if output_dir:
@@ -202,6 +209,8 @@ def create_overlapping_images(img_col1: pd.Series, img_col2: pd.Series,
                                              channels=kwargs.get('channels'),
                                              output_dir=output_dir,
                                              raters=kwargs.get('raters'),
+                                             distances=kwargs.get('distances'),
+                                             scale_down=kwargs.get('scale_down'),
                                              filename=idx, ignore_error=True)
         filepaths += [filepath]
 
