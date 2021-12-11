@@ -6,7 +6,8 @@ from scipy.spatial.distance import directed_hausdorff
 from itertools import combinations
 from .utils import (is_black_image, create_overlapping_image,
                     scale_down, draw_hausdorff_lines, read_binary,
-                    make_hyperlink, create_overlapping_images)
+                    make_hyperlink, create_overlapping_images,
+                    _max_dim_diff)
 
 def get_canny_edge(img:np.ndarray, threshold1=0, threshold2=255,
                 **kwargs)->np.ndarray:
@@ -123,18 +124,34 @@ def hausdorff_distance(img1:np.ndarray, img2: np.ndarray,
     }
 
     na = (-1.0, (-1.0,(0,0),(0,0)), (-1.0, (0,0), (0,0)))
+    ignore_error = kwargs.get('ignore_error')
+    tolerance = kwargs.get('tolerance')
+    index = kwargs.get('index')
+    raters = kwargs.get('raters')
+    point_threshold = kwargs.get('point_threshold')
 
-    if kwargs.get('ignore_error'):
-        if (img1.shape != img2.shape
-        or (is_black_image(img1))
+    if ignore_error:
+        if ((is_black_image(img1))
         or (is_black_image(img2))):
             return na
 
+        if img1.shape != img2.shape:
+            if tolerance is None:
+                return na
+
+            tol_pixel, dimension = tolerance
+            pixel_difference = _max_dim_diff(img1, img2, dimension)
+
+            if pixel_difference > tol_pixel:
+                return na
+
+
+
     else:
         assert img1.shape == img2.shape, \
-        f"""Unequal image size at {kwargs.get('index')}:\n
-        ``{kwargs.get('raters')[0]}`'s image has size {img1.shape}\n
-        while `{kwargs.get('raters')[1]}`'s image has size {img2.shape}\n"""
+        f"""Unequal image size at {index}:\n
+        ``{'Image 1' if not raters else raters[0]}`'s image has size {img1.shape}\n
+        while `{'Image 2' if not raters else raters[1]}`'s image has size {img2.shape}\n"""
 
 
     line1 = extraction_methods[extraction_method](img1,
@@ -148,11 +165,9 @@ def hausdorff_distance(img1:np.ndarray, img2: np.ndarray,
                                                   threshold1=threshold1,
                                                   threshold2=threshold2)
 
-    if kwargs.get('ignore_error'):
+    if ignore_error:
         if not (line1).all() or not (line2).all():
             return na
-
-    point_threshold = kwargs.get('point_threshold')
 
     if point_threshold:
         if (len(line1.ravel()) < point_threshold
@@ -206,7 +221,8 @@ def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:
                                       index=x.name,
                                       raters=(rater_a, rater_b),
                                       ignore_error=kwargs.get('ignore_error'),
-                                      point_threshold=kwargs.get('point_threshold')),
+                                      point_threshold=kwargs.get('point_threshold'),
+                                      tolerance=kwargs.get('tolerance')),
                                       axis = 1).apply(pd.Series)
         carrier_df[['hd', 'hAB', 'hBA']] = temp
         hd_df[f"Hausdorff_Distance-{rater_a}-{rater_b}"] = carrier_df['hd']

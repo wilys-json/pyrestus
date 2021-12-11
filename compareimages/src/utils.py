@@ -187,6 +187,7 @@ def draw_hausdorff_lines(overlapped_img:np.ndarray,
     min_directed_hd, max_directed_hd = sorted([directed_hausdorff_AtoB,
                                                directed_hausdorff_BtoA])
 
+    # if any `directed_hausdorff` is nan, end the function
     if (isinstance(min_directed_hd, float)
      or isinstance(max_directed_hd, float)):
         return
@@ -205,8 +206,10 @@ def create_overlapping_images(img_col1: pd.Series, img_col2: pd.Series,
     """
     Create a list of overlapping images from `img_col1` and `img_col2`
     """
+
     data = pd.concat([img_col1, img_col2, kwargs.get('distances')], axis=1)
     data.set_index(kwargs.get('indices'), inplace=True)
+
     filepaths = []
     for row in data.itertuples():
         distances = None
@@ -246,3 +249,12 @@ def make_hyperlink(val:str):
 def read_binary(file:Path):
 
     return cv2.imread(str(file), cv2.IMREAD_GRAYSCALE)
+
+def _max_dim_diff(img1: np.ndarray, img2: np.ndarray, dim:str)->int:
+    assert dim in ['1d', '2d'], \
+        f"dimension difference can only be `1d` or `2d`. Got {dim}."
+
+    if dim == '1d':
+        return np.abs(np.array(img1.shape) - np.array(img2.shape)).max()
+
+    return np.abs(np.array(img1.shape) - np.array(img2.shape)).sum()

@@ -26,6 +26,7 @@ def dice_coefficient(img1: np.ndarray, img2: np.ndarray, **kwargs) -> float:
                  if kwargs.get('raters')
                  else 'The second')}` image has shape {img2.shape}\n"""
 
+
     if kwargs.get('shape_only'):
         img1 = _get_shape1d(img1)
         img2 = _get_shape1d(img2)

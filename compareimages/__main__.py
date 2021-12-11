@@ -92,12 +92,15 @@ def calculate_hausdorff_distance(df: pd.DataFrame, args: argparse.Namespace,
     output_dir = kwargs.get('output_dir') / f"Hausdorff_Distance_{timestamp}"
     output_dir.mkdir()
     dropped_columns_message = None
+    tolerance = (None if args.tolerance == 0
+                else (args.tolerance, args.tolerance_dim))
     image_wise_hausdorff, hyperlink_df = hausdorff_distances(df,
                             ignore_error=args.ignore_error,
                             point_threshold=args.point_threshold,
                             repeated_image=args.repeated_image,
                             output_dir=output_dir,
-                            create_overlapping_image=args.create_overlaps)
+                            create_overlapping_image=args.create_overlaps,
+                            tolerance=tolerance)
 
     image_wise_hd_html = output_dir / f"Image-Wise-Hausdorff-Distance-{timestamp}.html"
     zero_values = (image_wise_hausdorff == -1.0).any(axis=1)
@@ -168,6 +171,13 @@ def main():
                         default=False)
     parser.add_argument('--create-overlaps', action='store_true',
                         default=False)
+    parser.add_argument('--tolerance', type=int, default=0)
+    parser.add_argument('--tolerate-1d', action='store_const',
+                        dest='tolerance_dim', const='1d',
+                        default='1d')
+    parser.add_argument('--tolerate-2d', action='store_const',
+                        dest='tolerance_dim', const='2d',
+                        default='1d')
 
     args = parser.parse_args()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
