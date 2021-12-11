@@ -7,7 +7,7 @@ from itertools import combinations
 from .utils import (is_black_image, create_overlapping_image,
                     scale_down, draw_hausdorff_lines, read_binary,
                     make_hyperlink, create_overlapping_images,
-                    _max_dim_diff)
+                    _max_dim_diff, get_distance_matrix)
 
 def get_canny_edge(img:np.ndarray, threshold1=0, threshold2=255,
                 **kwargs)->np.ndarray:
@@ -45,67 +45,28 @@ def get_thin_line(img:np.ndarray, **kwargs)->np.ndarray:
     return np.argwhere(cv2.ximgproc.thinning(img) >0)
 
 
-# def hausdorff_distance(img1:np.ndarray, img2:np.ndarray,
-#                       hausdorff_extractor:cv2.HausdorffDistanceExtractor=cv2.createHausdorffDistanceExtractor(),
-#                       extraction_method:str='thin',
-#                       retrieve_mode:int=cv2.RETR_EXTERNAL,
-#                       approximation:int=cv2.CHAIN_APPROX_TC89_KCOS,
-#                       threshold1=0,
-#                       threshold2=255,
-#                       **kwargs)->float:
-#
-#     """
-#     Compute Hausdorff Distance of `img1` and `img2` processed with
-#     `extraction_method`.
-#     """
-#
-#
-#     extraction_methods = {
-#         "thin" : get_thin_line,
-#         "canny" : get_canny_edge,
-#         "contour" : get_contour,
-#         "raw_points" : get_raw_points
-#     }
-#
-#
-#     if kwargs.get('ignore_error'):
-#         if (img1.shape != img2.shape
-#         or (is_black_image(img1))
-#         or (is_black_image(img2))):
-#             return -1.0
-#
-#         else:
-#             assert img1.shape == img2.shape, \
-#             f"""Unequal image size at {kwargs.get('index')}:\n
-#             ``{kwargs.get('raters')[0]}`'s image has size {img1.shape}\n
-#             while `{kwargs.get('raters')[1]}`'s image has size {img2.shape}\n"""
-#
-#
-#     line1 = extraction_methods[extraction_method](img1,
-#                                                   retrieve_mode=retrieve_mode,
-#                                                   approximation=approximation,
-#                                                   threshold1=threshold1,
-#                                                   threshold2=threshold2)
-#     line2 = extraction_methods[extraction_method](img2,
-#                                                   retrieve_mode=retrieve_mode,
-#                                                   approximation=approximation,
-#                                                   threshold1=threshold1,
-#                                                   threshold2=threshold2)
-#
-#     if kwargs.get('ignore_error'):
-#         if not (line1).all() or not (line2).all():
-#             return -1.0
-#
-#     point_threshold = kwargs.get('point_threshold')
-#
-#     if point_threshold:
-#         if (len(line1.ravel()) < point_threshold
-#          or len(line2.ravel()) < point_threshold):
-#             return -1.0
-#
-#
-#     return hausdorff_extractor.computeDistance(line1, line2)
+def average_hausdorff(segmentation: np.ndarray,
+                      ground_truth: np.ndarray,
+                      balanced:bool=False) -> float:
 
+    """
+    Implementation of O.U. Aydin, A.A. Taha, A. Hilbert, A.A Khalil,
+    I. Galinovic, J.B. Fiebach, D. Frey, V.I. Madai. (2021).
+    On the usage of average Hausdorff distance for segmentation
+    performance assessment: hidden error when used for ranking.
+
+    """
+
+    S = len(segmentation)
+    G = len(ground_truth)
+    distance_matrix = get_distance_matrix(segmentation, ground_truth)
+    StoG = distance_matrix.min(axis=0).sum()
+    GtoS = distance_matrix.min(axis=1).sum()
+
+    if balanced:
+        return ((StoG / G) + (GtoS / G)) / 2
+
+    return ((StoG / S) + (GtoS) / G) /2
 
 
 def hausdorff_distance(img1:np.ndarray, img2: np.ndarray,
@@ -129,6 +90,8 @@ def hausdorff_distance(img1:np.ndarray, img2: np.ndarray,
     index = kwargs.get('index')
     raters = kwargs.get('raters')
     point_threshold = kwargs.get('point_threshold')
+    average= kwargs.get('average')
+    balanced = kwargs.get('balanced') if kwargs.get('balanced') else False
 
     if ignore_error:
         if ((is_black_image(img1))
@@ -175,7 +138,12 @@ def hausdorff_distance(img1:np.ndarray, img2: np.ndarray,
             return na
 
     hAB, hBA = directed_hausdorff(line1,line2), directed_hausdorff(line2,line1)
-    hd, AtoB, BtoA = max(hAB[0], hBA[0]), hAB[1:], hBA[1:]
+
+    if average:
+        hd, AtoB, BtoA = (average_hausdorff(line1, line2, balanced),
+                          hAB[1:], hBA[1:])
+    else:
+        hd, AtoB, BtoA = max(hAB[0], hBA[0]), hAB[1:], hBA[1:]
 
 
     return (hd,
@@ -199,17 +167,26 @@ def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:
         "DataFrame contains inconsistent names. Please check file names again."
 
 
+    repeated_image = kwargs.get('repeated_image')
+    ignore_error = kwargs.get('ignore_error')
+    point_threshold = kwargs.get('point_threshold')
+    tolerance = kwargs.get('tolerance')
+    output_dir = kwargs.get('output_dir')
+    create_overlapping_image = kwargs.get('create_overlapping_image')
+    average = kwargs.get('average')
+    balanced = kwargs.get('balanced')
+
+
     hd_df = pd.DataFrame()
     temp_dfs = []
     tqdm.pandas()
     hyperlink_df = None
 
-    if kwargs.get('repeated_image'):
+
+    if repeated_image:
         indices = df.index.values
     else:
         indices = np.vectorize(lambda x: x.name)(df[df.columns[0]].values)
-    # extractor = cv2.createHausdorffDistanceExtractor()
-    # df = df.applymap(lambda x : read_binary(x))
 
     for comb in combinations(df.columns, 2):
         carrier_df = pd.DataFrame()
@@ -220,20 +197,22 @@ def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:
                                       read_binary(x[rater_b]),
                                       index=x.name,
                                       raters=(rater_a, rater_b),
-                                      ignore_error=kwargs.get('ignore_error'),
-                                      point_threshold=kwargs.get('point_threshold'),
-                                      tolerance=kwargs.get('tolerance')),
+                                      ignore_error=ignore_error,
+                                      point_threshold=point_threshold,
+                                      tolerance=tolerance,
+                                      average=average,
+                                      balanced=balanced),
                                       axis = 1).apply(pd.Series)
         carrier_df[['hd', 'hAB', 'hBA']] = temp
         hd_df[f"Hausdorff_Distance-{rater_a}-{rater_b}"] = carrier_df['hd']
 
-        if kwargs.get('create_overlapping_image'):
+        if create_overlapping_image:
             if not kwargs.get('output_dir'): continue
             print('creating overlapped images....')
             distances = carrier_df[['hAB', 'hBA']].apply(tuple, axis=1)
             paths = create_overlapping_images(df[rater_a],
                                               df[rater_b],
-                                              output_dir=kwargs.get('output_dir'),
+                                              output_dir=output_dir,
                                               indices=indices,
                                               raters=(rater_a, rater_b),
                                               distances=distances,
@@ -246,7 +225,7 @@ def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:
             temp_df = temp_df.applymap(lambda x : make_hyperlink(x))
             temp_dfs.append(temp_df)
 
-    if kwargs.get('create_overlapping_image'):
+    if create_overlapping_image:
         hyperlink_df = pd.concat(temp_dfs, axis=1)
         hyperlink_df = hyperlink_df.set_index(indices)
 

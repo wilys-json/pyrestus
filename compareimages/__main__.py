@@ -100,7 +100,9 @@ def calculate_hausdorff_distance(df: pd.DataFrame, args: argparse.Namespace,
                             repeated_image=args.repeated_image,
                             output_dir=output_dir,
                             create_overlapping_image=args.create_overlaps,
-                            tolerance=tolerance)
+                            tolerance=tolerance,
+                            average=args.average,
+                            balanced=args.balanced)
 
     image_wise_hd_html = output_dir / f"Image-Wise-Hausdorff-Distance-{timestamp}.html"
     zero_values = (image_wise_hausdorff == -1.0).any(axis=1)
@@ -178,6 +180,9 @@ def main():
     parser.add_argument('--tolerate-2d', action='store_const',
                         dest='tolerance_dim', const='2d',
                         default='1d')
+    parser.add_argument('--average', action='store_true',
+                        default=False)
+    parser.add_argument('--balanced', action='store_true', default=False)
 
     args = parser.parse_args()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")

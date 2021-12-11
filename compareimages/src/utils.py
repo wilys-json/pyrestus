@@ -6,6 +6,8 @@ import cv2
 from pathlib import Path
 from typing import Tuple
 from secrets import token_hex
+from numpy.linalg import norm
+from itertools import product
 
 IMAGE_FORMATS = ['.jpg', '.png', '.jpeg', '.bmp']
 
@@ -246,9 +248,11 @@ def make_hyperlink(val:str):
     value = f'{float(value):.4f}' if is_float(value) else value
     return f'<a href="{link}">{value}</a>'
 
+
 def read_binary(file:Path):
 
     return cv2.imread(str(file), cv2.IMREAD_GRAYSCALE)
+
 
 def _max_dim_diff(img1: np.ndarray, img2: np.ndarray, dim:str)->int:
     assert dim in ['1d', '2d'], \
@@ -258,3 +262,34 @@ def _max_dim_diff(img1: np.ndarray, img2: np.ndarray, dim:str)->int:
         return np.abs(np.array(img1.shape) - np.array(img2.shape)).max()
 
     return np.abs(np.array(img1.shape) - np.array(img2.shape)).sum()
+
+
+def calculate_norm(point1: np.ndarray, point2: np.ndarray,
+                   norm_const:int=2)->float:
+
+    """
+    Calculate distance between `point1` and `point2`.
+    Using L1 (norm_const=1) or L2, i.e. Euclidean Distance (norm_const=2).
+    """
+
+    assert norm_const in [1,2], \
+    f"Can only use L1 or L2 norm. Got L{norm_const}."
+
+    return norm(point1 - point2, norm_const)
+
+
+def get_distance_matrix(set1: np.ndarray, set2: np.ndarray) -> np.ndarray:
+
+    """
+    Get the distance matrix between two sets.
+    """
+
+    assert len(set1.shape) == len(set2.shape), \
+        "The dimenion of the sets should be the same."
+
+    dis_mat = np.zeros((set1.shape[0], set2.shape[0]))
+    for index in product(np.arange(len(set1)), np.arange(len(set2))):
+        id1, id2 = index
+        dis_mat[id1][id2] = calculate_norm(set1[id1], set2[id2])
+
+    return dis_mat
