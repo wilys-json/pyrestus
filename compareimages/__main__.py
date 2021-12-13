@@ -30,8 +30,11 @@ def make_dataframe(args: argparse.Namespace) -> pd.DataFrame:
 
         df = pd.read_csv(args.repeated_image, header=args.no_csv_header)
         df = df.applymap(lambda x: (input_dir / x))
-        df = df.set_index(np.apply_along_axis(lambda x : '-'.join(x),
-                          1, df.applymap(lambda x : x.name).values))
+        indices = []
+        for row in df.itertuples():
+            idx, file1, file2 = row
+            indices += ['-'.join([file1.name, file2.name])]
+        df = df.set_index(np.array(indices))
 
     else:
         if contains_dir(args.inputFolder):

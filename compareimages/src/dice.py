@@ -12,52 +12,42 @@ def dice_coefficient(img1: np.ndarray, img2: np.ndarray, **kwargs) -> float:
     """
     Naive Implementation of Dice score calculation.
     """
-    if kwargs.get('ignore_error'):
-        if img1.shape != img2.shape and not kwargs.get('shape_only'):
+
+    ignore_error = kwargs.get('ignore_error')
+    index = kwargs.get('index')
+    raters = kwargs.get('raters')
+    shape_only = kwargs.get('shape_only')
+
+
+    if ignore_error:
+        if img1.shape != img2.shape and not shape_only:
             return 0.0
 
     else:
         assert img1.shape == img2.shape, \
-        f"""Unequal image size at {kwargs.get('index')}:\n
-        `{(kwargs.get('raters')[0]
-           if kwargs.get('raters')
-           else 'The first')} image has shape {img1.shape}\n
-        while `{(kwargs.get('raters')[1]
-                 if kwargs.get('raters')
-                 else 'The second')}` image has shape {img2.shape}\n"""
+        f"""Unequal image size {'' if not index else 'at '+str(index)}:\n
+        `{raters[0]
+           if raters
+           else 'The first '}` image has shape {img1.shape}\n
+           while `{raters[1]
+                   if raters
+                   else 'The second '}` image has shape {img2.shape}\n"""
 
 
-    if kwargs.get('shape_only'):
-        img1 = _get_shape1d(img1)
-        img2 = _get_shape1d(img2)
+    if shape_only:
+        img1 = _get_shape_set(img1)
+        img2 = _get_shape_set(img2)
 
 
-    intersection, union = ((np.intersect1d(img1, img2).shape[0] / 2,
-                           np.union1d(img1, img2).shape[0])
-                           if kwargs.get('shape_only') else
-                           (((img1.ravel() == img2.ravel()) * 1).sum(),
+    intersection, union = (len(img1 & img2), len(img1) + len(img2) if shape_only
+                            else (((img1.ravel() == img2.ravel()) * 1).sum(),
                              (img1.size + img2.size)))
 
     # Dice Cofficient: 2 * (A n B) / A U B
     return (2 * intersection) / union
 
 
-def shape_intersection_union(img1: np.ndarray,
-                             img2: np.ndarray) -> Tuple[int, int]:
-    """
-    Return the intersection and union of two shapes from binary images.
-    """
-    img1_dtype = img1.dtype
-    img2_dtype = img2.dtype
-    img1 = np.argwhere(img1 == 255)
-    img2 = np.argwhere(img2 == 255)
-    img1_view = img1.view([('',img1_dtype)]*img1.shape[1])
-    img2_view = img2.view([('',img2_dtype)]*img2.shape[1])
-
-    return (np.intersect1d(img1_view, img2_view).shape[0] / 2,
-            np.union1d(img1_view, img2_view).shape[0])
-
-
+# Deprecated
 def _get_shape1d(img: np.ndarray) -> np.ndarray:
     """
     Return the view of a 2d shape defined in a binary image.
@@ -66,6 +56,18 @@ def _get_shape1d(img: np.ndarray) -> np.ndarray:
     img = np.argwhere(img == 255)
 
     return img.view([('',img_dtype)]*img.shape[1])
+
+def _get_shape_set(img: np.ndarray) -> set:
+
+    """
+    Return a set of pixel address of a shape defined by a binary `img`.
+    """
+
+    assert (np.unique(img) == np.array([0, 255])).all(), \
+        f"{_get_shape_set.__name__} only takes a binary image."
+    img = np.argwhere(img == 255)
+
+    return set([tuple(pixel_address) for pixel_address in img])
 
 
 def dice_scores(df:pd.DataFrame, **kwargs)->Tuple[pd.DataFrame, pd.DataFrame]:
