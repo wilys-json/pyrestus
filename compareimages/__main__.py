@@ -82,7 +82,12 @@ def calculate_dice_score(df: pd.DataFrame, args: argparse.Namespace, **kwargs):
         image_wise_dice.to_html(image_wise_html)
 
     average_dice.to_html(average_html)
-    image_wise_dice.describe().to_html(descriptive_html)
+    descriptive_dice = pd.concat([image_wise_dice.describe(),
+                          pd.DataFrame((image_wise_dice.stack()
+                                                       .describe()),
+                                       columns=['Aggregated'])], axis = 1)
+
+    descriptive_dice.to_html(descriptive_html)
 
     print(f"Dice coefficient results have been saved to: \
             {image_wise_html}, {average_html}, {descriptive_html}.")
