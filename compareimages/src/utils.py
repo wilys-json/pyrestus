@@ -11,6 +11,12 @@ from itertools import product
 
 IMAGE_FORMATS = ['.jpg', '.png', '.jpeg', '.bmp']
 
+def aggregate(df: pd.DataFrame)->pd.DataFrame:
+    
+    return pd.concat([df.describe(),pd.DataFrame((df.stack().describe()),
+                     columns=['Aggregated'])], axis = 1)
+
+
 def contains_dir(folder:str)->bool:
     """
     Check if a directory contains any subdirectories.

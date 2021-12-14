@@ -5,9 +5,10 @@ import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
 from datetime import datetime
-from src import (contains_dir, make_rater_dataframe, make_raters_dataframe,
-                 get_segmentation_mask, dice_scores, hausdorff_distances,
-                 make_hyperlink)
+from src import (contains_dir, make_hyperlink, aggregate,
+                 make_rater_dataframe, make_raters_dataframe,
+                 get_segmentation_mask, dice_scores, hausdorff_distances)
+
 
 OUTPUT_DIR = 'outputs'
 
@@ -82,11 +83,7 @@ def calculate_dice_score(df: pd.DataFrame, args: argparse.Namespace, **kwargs):
         image_wise_dice.to_html(image_wise_html)
 
     average_dice.to_html(average_html)
-    descriptive_dice = pd.concat([image_wise_dice.describe(),
-                          pd.DataFrame((image_wise_dice.stack()
-                                                       .describe()),
-                                       columns=['Aggregated'])], axis = 1)
-
+    descriptive_dice = aggregate(image_wise_dice)
     descriptive_dice.to_html(descriptive_html)
 
     print(f"Dice coefficient results have been saved to: \
@@ -127,10 +124,7 @@ def calculate_hausdorff_distance(df: pd.DataFrame, args: argparse.Namespace,
 
 
     summary_hd_html = output_dir / f"Hausdorff-Distance-Summary-{timestamp}.html"
-    summary_df = pd.concat([image_wise_hausdorff.describe(),
-                          pd.DataFrame((image_wise_hausdorff.stack()
-                                                            .describe()),
-                                       columns=['Aggregated'])], axis = 1)
+    summary_df = aggregate(image_wise_hausdorff)
     hausdorff_summary = summary_df.to_html()
 
     if dropped_columns_message:
