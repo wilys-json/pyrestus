@@ -7,14 +7,17 @@ from itertools import combinations
 from .utils import (is_black_image, create_overlapping_image,
                     scale_down, draw_hausdorff_lines, read_binary,
                     make_hyperlink, create_overlapping_images,
-                    _max_dim_diff, get_distance_matrix)
+                    _max_dim_diff)
+import pyximport
+pyximport.install()
+from .distance import get_distance_matrix
 
 def get_canny_edge(img:np.ndarray, threshold1=0, threshold2=255,
                 **kwargs)->np.ndarray:
     """
     Extract line by Canny Edge Method.
     """
-    cnt = cv.Canny(img, threshold1, threshold2)
+    cnt = cv2.Canny(img, threshold1, threshold2)
     return np.argwhere(cnt>0)
 
 
@@ -57,8 +60,10 @@ def average_hausdorff(segmentation: np.ndarray,
 
     """
 
-    S = len(segmentation)
-    G = len(ground_truth)
+    S = segmentation.shape[0]
+    G = ground_truth.shape[0]
+    segmentation=np.asarray(segmentation, dtype=np.int32, order='c')
+    ground_truth=np.asarray(ground_truth, dtype=np.int32, order='c')
     distance_matrix = get_distance_matrix(segmentation, ground_truth)
     StoG = distance_matrix.min(axis=0).sum()
     GtoS = distance_matrix.min(axis=1).sum()
@@ -70,7 +75,7 @@ def average_hausdorff(segmentation: np.ndarray,
 
 
 def hausdorff_distance(img1:np.ndarray, img2: np.ndarray,
-                      extraction_method:str='thin',
+                      extraction_method:str='canny',
                       retrieve_mode:int=cv2.RETR_EXTERNAL,
                       approximation:int=cv2.CHAIN_APPROX_TC89_KCOS,
                       threshold1=0,
@@ -175,6 +180,7 @@ def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:
     create_overlapping_image = kwargs.get('create_overlapping_image')
     average = kwargs.get('average')
     balanced = kwargs.get('balanced')
+    extraction_method = kwargs.get('extraction_method')
 
 
     hd_df = pd.DataFrame()
@@ -196,6 +202,7 @@ def hausdorff_distances(df:pd.DataFrame, **kwargs)->pd.DataFrame:
         lambda x : hausdorff_distance(read_binary(x[rater_a]),
                                       read_binary(x[rater_b]),
                                       index=x.name,
+                                      extraction_method=extraction_method,
                                       raters=(rater_a, rater_b),
                                       ignore_error=ignore_error,
                                       point_threshold=point_threshold,

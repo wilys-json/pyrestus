@@ -100,6 +100,7 @@ def calculate_hausdorff_distance(df: pd.DataFrame, args: argparse.Namespace,
     tolerance = (None if args.tolerance == 0
                 else (args.tolerance, args.tolerance_dim))
     image_wise_hausdorff, hyperlink_df = hausdorff_distances(df,
+                            extraction_method=args.method,
                             ignore_error=args.ignore_error,
                             point_threshold=args.point_threshold,
                             repeated_image=args.repeated_image,
@@ -185,6 +186,15 @@ def main():
     parser.add_argument('--average', action='store_true',
                         default=False)
     parser.add_argument('--balanced', action='store_true', default=False)
+    parser.add_argument('--thin', action='store_const', dest='method',
+                        const='thin', default='thin')
+    parser.add_argument('--canny', action='store_const', dest='method',
+                        const='canny', default='thin')
+    parser.add_argument('--contour', action='store_const', dest='method',
+                        const='contour', default='thin')
+    parser.add_argument('--raw-points', action='store_const', dest='method',
+                        const='raw_points', default='thin')
+
 
     args = parser.parse_args()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
