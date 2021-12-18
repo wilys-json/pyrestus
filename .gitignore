@@ -16,3 +16,9 @@ segmented/
 .DS_Store
 *.csv
 .log/
+
+*.c
+*.so
+
+*/**/build/
+*/build
