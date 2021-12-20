@@ -4,7 +4,7 @@ This is a research tool package being developed for studying Ultrasound Imaging.
 The package offers the following functionalities:
 
 - [Randomization of Ultrasound Images](randomize/README.md)
-- [Extraction of Raw Segmentation](compareimages/README.md#Segmentation)
+- [Extraction of Raw Segmentation](compareimages/README.md#Extraction-of-Raw-Segmentation)
 - [Evaluation Metrics for Segmentation](compareimages/README.md#Evaluation-Metrics)
 
 
