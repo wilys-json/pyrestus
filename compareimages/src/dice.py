@@ -63,12 +63,12 @@ def dice_coefficient(img1: np.ndarray, img2: np.ndarray, **kwargs) -> float:
         img2 = _get_shape_set(img2)
 
 
-    intersection, union = (len(img1 & img2), len(img1) + len(img2) if shape_only
+    intersection, sum_of_length = (len(img1 & img2), len(img1) + len(img2) if shape_only
                             else (((img1.ravel() == img2.ravel()) * 1).sum(),
                              (img1.size + img2.size)))
 
-    # Dice Cofficient: 2 * (A n B) / A U B
-    return (2 * intersection) / union
+    # Dice Cofficient: 2 * (A n B) / |A| + |B|
+    return (2 * intersection) / sum_of_length
 
 
 # Deprecated

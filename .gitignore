@@ -17,6 +17,7 @@ segmented/
 *.c
 *.so
 *.csv
+*.pyd
 
 venv/
 
