@@ -51,8 +51,10 @@ BINARY_THRESHOLD = 127
 
 OUTPUT_DIR = 'segmented'
 
-def crop_image(img:np.ndarray, cropping:Tuple[float],
-              keep_array=True)->Union[np.ndarray, Image.Image]:
+
+def crop_image(img:np.ndarray,
+               cropping:Tuple[float],
+               keep_array=True)->Union[np.ndarray, Image.Image]:
     """
     Crop `img` w.r.t. the defined `cropping` ratio.
     """
@@ -67,6 +69,7 @@ def crop_image(img:np.ndarray, cropping:Tuple[float],
     left_ratio, upper_ratio, right_ratio, lower_ratio = cropping
     img = img.crop((w * left_ratio, h * upper_ratio,
                     w * right_ratio, h * lower_ratio))
+
     if keep_array:
         return np.array(img)
 
@@ -74,8 +77,8 @@ def crop_image(img:np.ndarray, cropping:Tuple[float],
 
 
 def filter_image(img:np.ndarray,
-                id:str,
-                hsv_filters:List[Tuple[Tuple[float]]])->np.ndarray:
+                 id:str,
+                 hsv_filters:List[Tuple[Tuple[float]]])->np.ndarray:
     """
     Filter specific color range from `img` w.r.t. `hsv_filters`.
     Return immediately if one of the colors identified.
@@ -85,9 +88,6 @@ def filter_image(img:np.ndarray,
     blackimg = deepcopy(color)
 
     for hsv_filter in hsv_filters:
-        # if not (color == blackimg).all():
-        #     print(hsv_filter)
-        #     return color
         hsv_min, hsv_max = hsv_filter
         mask = cv2.inRange(hsv, hsv_min, hsv_max)
         imask = mask > 0
@@ -100,13 +100,16 @@ def filter_image(img:np.ndarray,
 
 
 def extract_segment(img:np.ndarray,
-                   correction:Tuple[int]=(2,2),
-                   iterations:int=10,
-                   smoothing:Tuple[int]=(7,7),
-                   binary_threshold:int=127)->np.ndarray:
+                   correction:Tuple[int]=MORPHOLOGICAL_CORRECTION,
+                   iterations:int=MORPHOLOGICAL_ITERATIONS,
+                   smoothing:Tuple[int]=GAUSSIAN_SMOOTHING,
+                   binary_threshold:int=BINARY_THRESHOLD)->np.ndarray:
 
     """
     Extract filtered segments and convert to an binary image.
+    Steps:
+    (1) Morphological correction : dilation & erosion
+    (2) Gaussian Blurring
     """
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -135,14 +138,14 @@ def fill_contours(img:np.ndarray)->Image.Image:
 
 
 
-def get_segmentation_mask(img_path: str, cropping:Tuple[float]=CROPPING_RATIOS,
-                        hsv_filters:List=list(HSV_FILTERS.values()),
-                        correction:Tuple[int]=MORPHOLOGICAL_CORRECTION,
-                        morph_iter:int=MORPHOLOGICAL_ITERATIONS,
-                        smoothing:Tuple[int]=GAUSSIAN_SMOOTHING,
-                        binary_threshold:int=BINARY_THRESHOLD,
-                        save:bool=True, **kwargs):
-
+def get_segmentation_mask(img_path: Union[str, Path],
+                          cropping:Tuple[float]=CROPPING_RATIOS,
+                          hsv_filters:List=list(HSV_FILTERS.values()),
+                          correction:Tuple[int]=MORPHOLOGICAL_CORRECTION,
+                          morph_iter:int=MORPHOLOGICAL_ITERATIONS,
+                          smoothing:Tuple[int]=GAUSSIAN_SMOOTHING,
+                          binary_threshold:int=BINARY_THRESHOLD,
+                          save:bool=True, **kwargs):
 
 
     """
@@ -150,15 +153,18 @@ def get_segmentation_mask(img_path: str, cropping:Tuple[float]=CROPPING_RATIOS,
     segmentation images.
     """
 
-    img = cv2.imread(img_path)
+    show_original = kwargs.get('show_original')
+    show_binary = kwargs.get('show_binary')
+    lines_only = kwargs.get('lines_only')
+    show_mask = kwargs.get('show_mask')
+
+    img = cv2.imread(str(img_path))
 
     if cropping:
         img = crop_image(img=img, cropping=CROPPING_RATIOS)
 
     color = filter_image(img=img, id=img_path, hsv_filters=hsv_filters)
 
-    # if kwargs.get('show_binary') == True:
-    #     Image.fromarray(color).show()
 
     thresh = extract_segment(img=color,
                             correction=correction,
@@ -166,18 +172,18 @@ def get_segmentation_mask(img_path: str, cropping:Tuple[float]=CROPPING_RATIOS,
                             smoothing=smoothing,
                             binary_threshold=binary_threshold)
 
-    if kwargs.get('show_original') == True:
+    if show_original:
         Image.fromarray(img).show()
 
-    if kwargs.get('show_binary') == True:
+    if show_binary:
         Image.fromarray(thresh).show()
 
-    if kwargs.get('lines_only') == True:
+    if lines_only:
         segmented_img = Image.fromarray(thresh)
     else:
         segmented_img = fill_contours(img=thresh)
 
-    if kwargs.get('show_mask') == True:
+    if show_mask:
         segmented_img.show()
 
 
