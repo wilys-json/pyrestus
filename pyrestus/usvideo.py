@@ -206,17 +206,18 @@ class UltrasoundVideo(FileDataset):
         Preprocess ultrasound video images.
         """
         # Find universal left- and right-most points
-        left, right = self._find_boundaries()
+        # left, right = self._find_boundaries()
         images = []
 
         # Iterate through all images
         for image in self.pixel_array:
             image = self._color_conversion(image)  # Convert color
             image = self._get_roi(image)  # Get device-defined ROI
-            if not None in [left, right]:
-                images += [image[:,left:right]]  # Crop to final ROI
-            else:
-                images += [image]
+            # if not None in [left, right]:
+            #     images += [image[:,left:right]]  # Crop to final ROI
+            # else:
+            #     images += [image]
+            images += [image]
         self.data = np.array(images)
 
 
