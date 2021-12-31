@@ -15,7 +15,6 @@ from typing import Tuple, Union, List
 from warnings import warn
 from IPython import display
 from pydicom.errors import InvalidDicomError
-from .utils import detect_lines
 
 np.random.seed(0)
 
@@ -108,7 +107,7 @@ class UltrasoundVideo(FileDataset):
     procedure:str=''
     fps:float=0.0
     transducer:str='linear'
-    data:np.ndarray=np.array([])
+    data:np.ndarray=np.array([], dtype='uint8')
     _roi_coordinates:Tuple[int]=(0,0,0,0)
     _smoothing_kernel:Tuple[int]=(3,3)
 
@@ -148,42 +147,13 @@ class UltrasoundVideo(FileDataset):
             else:
                 self.data = np.array(_data)
 
-        # Override metadata
-        for attr, value in kwargs.items():
-            setattr(self, attr, value)
+            # Override metadata
+            for attr, value in kwargs.items():
+                setattr(self, attr, value)
 
 
     def _has_data(self):
-        return len(self.data) > 0
-
-
-    def _find_boundaries(self)->Tuple[int]:
-        """
-        Find universal left & right boundaries of ROI
-        by randomly sampling log(n) number of frames,
-        where n = total number of frames.
-        """
-
-        points = []
-        length = self.pixel_array.shape[0]
-        sample_length =  math.ceil(math.log(length))
-
-        # Random sampling of frames
-        sample_segments = np.random.randint([length] * sample_length)
-
-        # Find right- & left-most point of ROI
-        for i in sample_segments:
-            image = self._color_conversion(self.pixel_array[i])
-            image = self._get_roi(image)
-            points += detect_lines(image=image,
-                                   kernel=self._smoothing_kernel,
-                                   transducer=self.transducer)
-
-        # Remove None from set
-        points = np.array(list(set(points).difference({None})))
-
-        # Left-most & Right-most points on Y axis
-        return points.min(), points.max()
+        return self.data.size > 0
 
 
     def _color_conversion(self, image:np.ndarray)->np.ndarray:
@@ -193,33 +163,20 @@ class UltrasoundVideo(FileDataset):
         return COLOR_CONVERSION[self.color_space](image)
 
 
-    def _get_roi(self, image:np.ndarray)->np.ndarray:
-        """
-        Retrieve initial ROI from device-defined coordinates
-        """
-        return np.array(Image.fromarray(image)
-                        .crop(self._roi_coordinates))
-
-
     def _preprocess(self):
         """
         Preprocess ultrasound video images.
         """
-        # Find universal left- and right-most points
-        # left, right = self._find_boundaries()
+        X0, Y0, X1, Y1 = self._roi_coordinates
+
         images = []
 
         # Iterate through all images
         for image in self.pixel_array:
-            image = self._color_conversion(image)  # Convert color
-            image = self._get_roi(image)  # Get device-defined ROI
-            # if not None in [left, right]:
-            #     images += [image[:,left:right]]  # Crop to final ROI
-            # else:
-            #     images += [image]
-            images += [image]
-        self.data = np.array(images)
+            images += [self._color_conversion(image)[Y0:Y1, X0:X1]]
 
+        self.data = np.array(images)
+        
 
     def __len__(self):
         return len(self.data)
@@ -253,3 +210,32 @@ class UltrasoundVideo(FileDataset):
 
             cv2.waitKey(1)
             cv2.destroyAllWindows()
+
+
+    # def _find_boundaries(self)->Tuple[int]:
+    #     """
+    #     Find universal left & right boundaries of ROI
+    #     by randomly sampling log(n) number of frames,
+    #     where n = total number of frames.
+    #     """
+    #
+    #     points = []
+    #     length = self.pixel_array.shape[0]
+    #     sample_length =  math.ceil(math.log(length))
+    #
+    #     # Random sampling of frames
+    #     sample_segments = np.random.randint([length] * sample_length)
+    #
+    #     # Find right- & left-most point of ROI
+    #     for i in sample_segments:
+    #         image = self._color_conversion(self.pixel_array[i])
+    #         image = self._get_roi(image)
+    #         points += detect_lines(image=image,
+    #                                kernel=self._smoothing_kernel,
+    #                                transducer=self.transducer)
+    #
+    #     # Remove None from set
+    #     points = np.array(list(set(points).difference({None})))
+    #
+    #     # Left-most & Right-most points on Y axis
+    #     return points.min(), points.max()
