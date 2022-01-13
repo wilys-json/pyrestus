@@ -49,8 +49,8 @@ US_ATTRIBUTES = (
  ),
  lambda x: (
      setattr(x, 'start_time',
-            parser.parse(getattr(x, 'PerformedProcedureStepStartDate')
-                        +getattr(x, 'PerformedProcedureStepStartTime')))
+            parser.parse(getattr(x, 'ContentDate')
+                        +getattr(x, 'ContentTime')))
  ),
  lambda x: (
      setattr(x, 'color_space',
@@ -168,15 +168,17 @@ class UltrasoundVideo(FileDataset):
         Preprocess ultrasound video images.
         """
         X0, Y0, X1, Y1 = self._roi_coordinates
-
-        images = []
+        frames = self.pixel_array.shape[0]
+        channels = self.pixel_array.shape[3]
+        self.data = np.empty(shape=(frames, Y1-Y0,
+                                    X1-X0, channels), dtype=np.uint8)
 
         # Iterate through all images
-        for image in self.pixel_array:
-            images += [self._color_conversion(image)[Y0:Y1, X0:X1]]
+        for i in range(self.pixel_array.shape[0]):
+            self.data[i] = self._color_conversion(self.pixel_array[i][Y0:Y1, X0:X1])
 
-        self.data = np.array(images)
-        
+        # self.data = np.array(images)
+
 
     def __len__(self):
         return len(self.data)
@@ -194,6 +196,14 @@ class UltrasoundVideo(FileDataset):
         except KeyError:
             if self._has_data():
                 return self.data[idx]
+
+    @property
+    def frame_size(self):
+        return self.data.shape[1:3]
+
+    @property
+    def channels(self):
+        return self.data.shape[-1]
 
     def show(self):
         """

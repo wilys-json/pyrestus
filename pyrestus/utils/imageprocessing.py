@@ -4,6 +4,7 @@ from typing import Tuple, Union, List
 from math import log
 from .. import UltrasoundVideo
 
+
 np.random.seed(0)
 
 __all__ = [

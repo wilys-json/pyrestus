@@ -22,22 +22,39 @@
 # SOFTWARE.                                                                     #
 #################################################################################
 
-import numpy
-from Cython.Build import cythonize
-from pathlib import Path
+import numpy as np
+import cv2
+from numpy import uint8
+from numpy cimport uint8_t
+cimport numpy as np
+cimport cython
 
-def configuration(parent_package='',top_path=None):
-      from numpy.distutils.misc_util import Configuration, get_info
-      cythonize([str(Path(__file__).parent / "*.pyx")], quiet=True)
-      config = Configuration('', parent_package, top_path)
-      src = ['*.c']
-      inc_dir = [numpy.get_include()]
-      config.add_extension('distance',sources=src, include_dirs=inc_dir)
-      config.set_options(quiet=True)
-      return config
+__all__ = ['convert_color']
 
+COLOR_CONVERSION = {
+    'RGB' : (lambda x : x),
+    'YBR_FULL_422' : (
+        lambda x: cv2.cvtColor(x, cv2.COLOR_YUV2RGB)
+    )
+}
 
+@cython.boundscheck(False)
+def convert_color(np.ndarray[int, ndim=4, mode="c"] img,
+                  tuple coordinates,
+                  str mode):
 
-if __name__ == '__main__':
-    from numpy.distutils.core import setup
-    setup(**configuration(top_path='').todict())
+  cdef int frame = img.shape[0]
+  cdef channels = img.shape[3]
+  cdef int X0 = coordinates[0]
+  cdef int Y0 = coordinates[1]
+  cdef int X1 = coordinates[2]
+  cdef int Y1 = coordinates[3]
+  cdef int h = Y1-Y0
+  cdef int w = X1-X0
+
+  data = np.empty(shape=(frame, h, w, channels), dtype=uint8)
+
+  for i in range(frame):
+    data[i] = COLOR_CONVERSION[mode](img[i][Y0:Y1, X0:X1])
+
+  return data

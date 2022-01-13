@@ -26,13 +26,14 @@ import numpy
 from Cython.Build import cythonize
 from pathlib import Path
 
+
 def configuration(parent_package='',top_path=None):
       from numpy.distutils.misc_util import Configuration, get_info
       cythonize([str(Path(__file__).parent / "*.pyx")], quiet=True)
       config = Configuration('', parent_package, top_path)
       src = ['*.c']
       inc_dir = [numpy.get_include()]
-      config.add_extension('distance',sources=src, include_dirs=inc_dir)
+      config.add_extension('colorconversion',sources=src, include_dirs=inc_dir)
       config.set_options(quiet=True)
       return config
 
