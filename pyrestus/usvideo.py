@@ -2,6 +2,7 @@ import pydicom
 import numpy as np
 import pandas as pd
 import time
+import datetime
 import math
 import cv2
 from PIL import Image
@@ -15,6 +16,9 @@ from typing import Tuple, Union, List
 from warnings import warn
 from IPython import display
 from pydicom.errors import InvalidDicomError
+import pyximport
+pyximport.install()
+from .utils import convert_color
 
 np.random.seed(0)
 
@@ -110,6 +114,7 @@ class UltrasoundVideo(FileDataset):
     data:np.ndarray=np.array([], dtype='uint8')
     _roi_coordinates:Tuple[int]=(0,0,0,0)
     _smoothing_kernel:Tuple[int]=(3,3)
+    _use_cython = False
 
 
     def __init__(self, file: Union[str, Path], **kwargs):
@@ -119,12 +124,17 @@ class UltrasoundVideo(FileDataset):
             file_dataset = pydicom.dcmread(str(file))
             super().__dict__.update(file_dataset.__dict__)
 
+
             # Set attributes w.r.t. Metadata
             for setter in US_ATTRIBUTES:
                 try:
                     setter(self)
                 except AttributeError:
                     warn(f"Unable to find attribute for {setter}")
+
+            # Override metadata
+            for attr, value in kwargs.items():
+                setattr(self, attr, value)
 
             # Handle non-video input
             if len(self.pixel_array.shape) != 4:
@@ -167,17 +177,28 @@ class UltrasoundVideo(FileDataset):
         """
         Preprocess ultrasound video images.
         """
-        X0, Y0, X1, Y1 = self._roi_coordinates
-        frames = self.pixel_array.shape[0]
-        channels = self.pixel_array.shape[3]
-        self.data = np.empty(shape=(frames, Y1-Y0,
-                                    X1-X0, channels), dtype=np.uint8)
 
-        # Iterate through all images
-        for i in range(self.pixel_array.shape[0]):
-            self.data[i] = self._color_conversion(self.pixel_array[i][Y0:Y1, X0:X1])
+        if not self._use_cython:
+            # Retrieve keypoints
+            X0, Y0, X1, Y1 = self._roi_coordinates
+            frames = self.pixel_array.shape[0]
+            # Slice ROI
+            self.data = self.pixel_array[:, Y0:Y1, X0:X1, :]
+            func = COLOR_CONVERSION[self.color_space]
 
-        # self.data = np.array(images)
+            # Iterate through all images
+            for i in range(frames):
+                self.data[i] = func(self.data[i])
+
+        # Use Cython code; timeit diff is not significant
+        else:
+            self.data = convert_color(np.asarray(self.pixel_array,
+                                                 dtype=np.uint8,
+                                                 order='c'),
+                                      self._roi_coordinates,
+                                      self.color_space)
+
+
 
 
     def __len__(self):
@@ -220,32 +241,3 @@ class UltrasoundVideo(FileDataset):
 
             cv2.waitKey(1)
             cv2.destroyAllWindows()
-
-
-    # def _find_boundaries(self)->Tuple[int]:
-    #     """
-    #     Find universal left & right boundaries of ROI
-    #     by randomly sampling log(n) number of frames,
-    #     where n = total number of frames.
-    #     """
-    #
-    #     points = []
-    #     length = self.pixel_array.shape[0]
-    #     sample_length =  math.ceil(math.log(length))
-    #
-    #     # Random sampling of frames
-    #     sample_segments = np.random.randint([length] * sample_length)
-    #
-    #     # Find right- & left-most point of ROI
-    #     for i in sample_segments:
-    #         image = self._color_conversion(self.pixel_array[i])
-    #         image = self._get_roi(image)
-    #         points += detect_lines(image=image,
-    #                                kernel=self._smoothing_kernel,
-    #                                transducer=self.transducer)
-    #
-    #     # Remove None from set
-    #     points = np.array(list(set(points).difference({None})))
-    #
-    #     # Left-most & Right-most points on Y axis
-    #     return points.min(), points.max()

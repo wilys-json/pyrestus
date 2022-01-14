@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 from typing import Tuple, Union, List
 from math import log
-from .. import UltrasoundVideo
 
 
 np.random.seed(0)
@@ -69,7 +68,7 @@ def _find_Xbounds(image:np.ndarray,
     return [None]
 
 
-def find_Xbounds(video:UltrasoundVideo,
+def find_Xbounds(video,
                 kernel:Tuple[int],
                 transducer:str,
                 padding:int=5)->Tuple[Union[None, int]]:

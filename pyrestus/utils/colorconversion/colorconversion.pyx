@@ -24,27 +24,35 @@
 
 import numpy as np
 import cv2
+from numpy import float32
+from numpy cimport float32_t
 from numpy import uint8
 from numpy cimport uint8_t
+from numpy cimport ndarray
 cimport numpy as np
 cimport cython
 
+ctypedef float32_t FLOAT
+ctypedef uint8_t INT
+
 __all__ = ['convert_color']
+
+cdef np.ndarray[INT, ndim=3] yuv2rgb(np.ndarray[INT, ndim=3] img):
+  return cv2.cvtColor(img, cv2.COLOR_YUV2RGB)
+
 
 COLOR_CONVERSION = {
     'RGB' : (lambda x : x),
-    'YBR_FULL_422' : (
-        lambda x: cv2.cvtColor(x, cv2.COLOR_YUV2RGB)
-    )
+    'YBR_FULL_422' : yuv2rgb,
 }
 
 @cython.boundscheck(False)
-def convert_color(np.ndarray[int, ndim=4, mode="c"] img,
+def convert_color(ndarray[INT, ndim=4] img,
                   tuple coordinates,
                   str mode):
 
   cdef int frame = img.shape[0]
-  cdef channels = img.shape[3]
+  cdef int channels = img.shape[3]
   cdef int X0 = coordinates[0]
   cdef int Y0 = coordinates[1]
   cdef int X1 = coordinates[2]
@@ -52,9 +60,11 @@ def convert_color(np.ndarray[int, ndim=4, mode="c"] img,
   cdef int h = Y1-Y0
   cdef int w = X1-X0
 
-  data = np.empty(shape=(frame, h, w, channels), dtype=uint8)
+  img = img[:, Y0:Y1, X0:X1, :]
+  func = COLOR_CONVERSION[mode]
 
   for i in range(frame):
-    data[i] = COLOR_CONVERSION[mode](img[i][Y0:Y1, X0:X1])
+    img[i] = func(img[i])
 
-  return data
+
+  return img
