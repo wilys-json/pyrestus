@@ -18,7 +18,7 @@ from IPython import display
 from pydicom.errors import InvalidDicomError
 import pyximport
 pyximport.install()
-from .utils import convert_color
+from .utils import convert_color, _format_filename, create_video_writer
 
 np.random.seed(0)
 
@@ -91,7 +91,7 @@ US_ATTRIBUTES = (
 COLOR_CONVERSION = {
     'RGB' : (lambda x : x),
     'YBR_FULL_422' : (
-        lambda x: cv2.cvtColor(x, cv2.COLOR_YUV2RGB)
+        lambda x: cv2.cvtColor(x, cv2.COLOR_YUV2BGR)
     )
 }
 
@@ -104,7 +104,7 @@ class UltrasoundVideo(FileDataset):
     delta_y:float=0.0
     unit_x:int=3
     unit_y:int=3
-    dob:datetime
+    dob:datetime=datetime(1900,1,1)
     name:str=''
     pid:str=''
     start_time:datetime=datetime(1900,1,1)
@@ -114,7 +114,8 @@ class UltrasoundVideo(FileDataset):
     data:np.ndarray=np.array([], dtype='uint8')
     _roi_coordinates:Tuple[int]=(0,0,0,0)
     _smoothing_kernel:Tuple[int]=(3,3)
-    _use_cython = False
+    _use_cython:bool = False
+    _is_video:bool = False
 
 
     def __init__(self, file: Union[str, Path], **kwargs):
@@ -139,7 +140,9 @@ class UltrasoundVideo(FileDataset):
             # Handle non-video input
             if len(self.pixel_array.shape) != 4:
                 self.data = self.pixel_array
-            else: self._preprocess()
+            else:
+                self._preprocess(**kwargs)
+                self._is_video = True
 
         # if `file` is in non-DICOM video format
         except InvalidDicomError:
@@ -156,6 +159,7 @@ class UltrasoundVideo(FileDataset):
                 warn(f"Invalid video format. {__name__} data is empty.")
             else:
                 self.data = np.array(_data)
+                self._is_video = True
 
             # Override metadata
             for attr, value in kwargs.items():
@@ -173,23 +177,34 @@ class UltrasoundVideo(FileDataset):
         return COLOR_CONVERSION[self.color_space](image)
 
 
-    def _preprocess(self):
+    def _preprocess(self, **kwargs):
         """
         Preprocess ultrasound video images.
         """
+        # Retrieve keypoints
+        X0, Y0, X1, Y1 = self._roi_coordinates
+        roi_dimensions = self.pixel_array[:, Y0:Y1, X0:X1, :].shape
+        video_writer = create_video_writer(format=kwargs.get('video_format'),
+                                            frame_size=roi_dimensions[1:3][::-1],
+                                            fps=self.fps,
+                                            name=self.name,
+                                            pid=self.pid,
+                                            start_time=self.start_time,
+                                            codec=kwargs.get('codec'))
 
         if not self._use_cython:
-            # Retrieve keypoints
-            X0, Y0, X1, Y1 = self._roi_coordinates
-            frames = self.pixel_array.shape[0]
             # Slice ROI
-            self.data = self.pixel_array[:, Y0:Y1, X0:X1, :]
+            self.data = np.empty(roi_dimensions, dtype=np.uint8)
             func = COLOR_CONVERSION[self.color_space]
 
             # Iterate through all images
-            for i in range(frames):
-                self.data[i] = func(self.data[i])
+            for i, frame in enumerate(self.pixel_array):
+                self.data[i] = func(frame[Y0:Y1, X0:X1, :])
+                if video_writer is not None:
+                    video_writer.write(self.data[i])
 
+            if video_writer is not None:
+                video_writer.release()
         # Use Cython code; timeit diff is not significant
         else:
             self.data = convert_color(np.asarray(self.pixel_array,
@@ -197,8 +212,6 @@ class UltrasoundVideo(FileDataset):
                                                  order='c'),
                                       self._roi_coordinates,
                                       self.color_space)
-
-
 
 
     def __len__(self):
@@ -226,7 +239,7 @@ class UltrasoundVideo(FileDataset):
     def channels(self):
         return self.data.shape[-1]
 
-    def show(self):
+    def show(self, **kwargs):
         """
         Play Ultrasound Video.
         """
@@ -241,3 +254,16 @@ class UltrasoundVideo(FileDataset):
 
             cv2.waitKey(1)
             cv2.destroyAllWindows()
+
+    def saveimg(self, folder:str=''):
+        save_dir = (Path.cwd() if not folder or not Path(folder).is_dir()
+                    else Path(folder))
+        save_dir_suffix, file_suffix = _format_filename(format='png',
+                                        name=self.name,
+                                        pid=self.pid,
+                                        start_time=self.start_time).split('.')
+        save_dir = save_dir / save_dir_suffix
+        save_dir.mkdir(parents=True, exist_ok=True)
+        pad = len(str(len(self.data)))
+        for i, image in enumerate(self.data):
+            cv2.imwrite(f'{save_dir}/{str(i).zfill(pad)}.{file_suffix}', image)
