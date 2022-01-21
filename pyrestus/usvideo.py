@@ -1,3 +1,27 @@
+#################################################################################
+# MIT License                                                                   #
+#                                                                               #
+# Copyright (c) 2021 Wilson Lam                                                 #
+#                                                                               #
+# Permission is hereby granted, free of charge, to any person obtaining a copy  #
+# of this software and associated documentation files (the "Software"), to deal`#
+# in the Software without restriction, including without limitation the rights  #
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell     #
+# copies of the Software, and to permit persons to whom the Software is         #
+# furnished to do so, subject to the following conditions:                      #
+#                                                                               #
+# The above copyright notice and this permission notice shall be included in all#
+# copies or substantial portions of the Software.                               #
+#                                                                               #
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR    #
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,      #
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE   #
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER        #
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, #
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE #
+# SOFTWARE.                                                                     #
+#################################################################################
+
 import pydicom
 import numpy as np
 import pandas as pd
@@ -19,6 +43,7 @@ from pydicom.errors import InvalidDicomError
 import pyximport
 pyximport.install()
 from .utils import convert_color, _format_filename, create_video_writer
+from joblib import Parallel, delayed
 
 np.random.seed(0)
 
@@ -94,6 +119,71 @@ COLOR_CONVERSION = {
         lambda x: cv2.cvtColor(x, cv2.COLOR_YUV2BGR)
     )
 }
+
+@dataclass
+class converter:
+
+    """
+    WORK IN PROGRESS.
+    TODO: refactor this class & UltrasoundVideo.
+
+
+
+    from joblib import cpu_count
+
+
+    %%timeit
+    dicoms = [file for file in dicom.iterdir()] # dicom : DICOM directory
+    dicoms.sort()
+    batch_size = ceil(len(dicoms) / cpu_count())
+    batches = [dicoms[i:i+batch_size]for i in range(0, len(dicoms), batch_size)]
+    n_jobs = len(batches)
+    converter(n_jobs, 'threading').DICOMs2AVIs(batches)
+
+    >> for 56 files:
+    >> 41.3 s ± 907 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+    """
+
+    n_jobs:int
+    backend:str
+
+    def __post_init__(self):
+        self.parallel = Parallel(n_jobs=self.n_jobs,
+                                 backend=self.backend)
+
+    @staticmethod
+    def convertAVI_file(file):
+        out = str(file).split('/')[-1]
+        try:
+            filedataset = pydicom.dcmread(file)
+            try:
+                sequence = filedataset.SequenceOfUltrasoundRegions[0]
+            except AttributeError:
+                return
+            X0, Y0, X1, Y1 = (sequence.RegionLocationMinX0,
+                              sequence.RegionLocationMinY0,
+                              sequence.RegionLocationMaxX1,
+                              sequence.RegionLocationMaxY1)
+            data = filedataset.pixel_array
+            if len(data.shape) != 4 : return
+            frame_size = data[:, Y0:Y1, X0:X1, :].shape[1:3][::-1]
+            fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+            fps = (1000 / filedataset.FrameTime)
+            writer = cv2.VideoWriter(f'{out}.avi', fourcc, fps, frame_size)
+            for frame in data:
+                frame = cv2.cvtColor(frame[Y0:Y1, X0:X1, :], cv2.COLOR_YUV2RGB)
+                writer.write(frame)
+            writer.release()
+        except InvalidDicomError:
+            return
+
+    @staticmethod
+    def convertAVI_batch(batch:list):
+        [converter.convertAVI_file(file) for i, file in enumerate(batch)]
+
+    def DICOMs2AVIs(self, batches):
+        self.parallel(delayed(converter.convertAVI_batch)(batch) for batch in batches)
 
 
 @dataclass(init=False)
