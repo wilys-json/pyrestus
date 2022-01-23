@@ -1,4 +1,5 @@
 import cv2
+from pathlib import Path
 from datetime import datetime
 from typing import Tuple
 
@@ -29,8 +30,12 @@ def create_video_writer(format:str,
 
 
     if not filename : return None
+    output_dir = kwargs.get('output_dir')
+    if output_dir:
+        Path(str(output_dir)).mkdir(parents=True, exist_ok=True)
+        filename = output_dir / filename
 
     codec = 'MJPG' if not kwargs.get('codec') else kwargs.get('codec')
     fourcc = cv2.VideoWriter_fourcc(*codec)
 
-    return cv2.VideoWriter(filename, fourcc, fps, frame_size)
+    return cv2.VideoWriter(str(filename), fourcc, fps, frame_size)
