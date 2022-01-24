@@ -43,8 +43,9 @@ from IPython import display
 from pydicom.errors import InvalidDicomError
 import pyximport
 pyximport.install()
-from .utils import convert_color, _format_filename, create_video_writer
-from joblib import Parallel, delayed
+from .utils import format_filename, create_video_writer, create_file_batch
+from joblib import Parallel, delayed, cpu_count
+from tqdm_batch import batch_process
 
 __all__ = ['UltrasoundVideo', 'USVBatchConverter']
 
@@ -140,12 +141,6 @@ US_COLOR_CONVERSION = {
 
 }
 
-US_OUTPUT_WRITER = (lambda format :
-                    UltrasoundVideoIO.VideoWriter(format) if format in VIDEO_FORMATS else
-                    UltrasoundVideoIO.ImageWriter(format) if format in IMAGE_FORMATS else
-                    DEFAULT_FUNCTION)
-
-
 
 class EmptyDataWarning(Warning): pass
 
@@ -180,16 +175,17 @@ class UltrasoundVideoBase(FileDataset):
 @dataclass
 class UltrasoundVideoProcessor:
 
-    _source_color_space:str='RGB'
-    _target_color_space:str='RGB'
-    transducer:str='linear'
     delta_x:float=0.0
     delta_y:float=0.0
+    transducer:str='linear'
     unit_x:int=3
     unit_y:int=3
+    _codec:str='MJPG'
     _color_converter:Callable = None
-    _use_cython:bool = False
     _smoothing_kernel:Tuple[int]=(3,3)
+    _source_color_space:str='RGB'
+    _target_color_space:str='RGB'
+    _use_cython:bool = False
 
     @property
     def source_color_space(self)->str:
@@ -210,6 +206,14 @@ class UltrasoundVideoProcessor:
         self.init_color_converter()
 
     @property
+    def codec(self)->str:
+        return self._codec
+
+    @codec.setter
+    def codec(self, codec:str)->None:
+        self._codec = codec
+
+    @property
     def color_converter(self)->Callable:
         return self._color_converter
 
@@ -226,6 +230,9 @@ class UltrasoundVideoProcessor:
     def trim(self, img:np.ndarray)->np.ndarray:
         X0, Y0, X1, Y1 = self._roi_coordinates
         return img[Y0:Y1, X0:X1, :]
+
+    def smooth(self, img:np.ndarray)->np.ndarray:
+        return cv2.GaussianBlur(img, self._smoothing_kernel, 0)
 
     #TODO: Imeplement Reverse Scan Conversion (RSC)
     def reverse_scan_conversion(self): pass
@@ -267,28 +274,41 @@ class UltrasoundVideoIO(UltrasoundVideoBase):
     def output_dir(self, output_dir:str)->None:
         self._output_dir = Path(output_dir)
 
-    def VideoWriter(self, video_format, **kwargs)->cv2.VideoWriter:
+    @property
+    def orig_size(self):
+        return self.data.shape[1:3]
+
+    @property
+    def roi_size(self):
+        X0, Y0, X1, Y1 = self._roi_coordinates
+        return self.data[:, Y0:Y1, X0:X1, :].shape[1:3]
+
+    def VideoWriter(self, video_format, codec='MJPG', **kwargs)->cv2.VideoWriter:
+        processing = kwargs.get('processing', US_PROCESSING)
+        frame_size = (self.roi_size[::-1] if 'trim' in processing
+                      else self.orig_size[::-1])
         return create_video_writer(format=self.output_format,
-                                   frame_size=self.roi_size[::-1],
+                                   frame_size=frame_size,
                                    fps=self.fps,
                                    name=self.name,
                                    pid=self.pid,
                                    start_time=self.start_time,
                                    output_dir=self.output_dir,
-                                   codec=kwargs.get('codec'))
+                                   codec=self.codec,
+                                   **kwargs)
 
     def ImageWriter(self, image_format:str='png', **kwargs)->Callable:
-        save_dir_suffix, file_suffix = _format_filename(format=image_format,
-                                        name=self.name,
-                                        pid=self.pid,
-                                        start_time=self.start_time).split('.')
+        filename = format_filename(name=self.name,
+                                   pid=self.pid,
+                                   start_time=self.start_time,
+                                   **kwargs)
 
-        save_dir = self.output_dir / save_dir_suffix
+        save_dir = self.output_dir / f'{filename}'
         save_dir.mkdir(parents=True, exist_ok=True)
         pad = len(str(len(self.data)))
 
         return (lambda i, image :
-                cv2.imwrite(f'{save_dir}/{str(i).zfill(pad)}.{file_suffix}',
+                cv2.imwrite(f'{save_dir}/{str(i).zfill(pad)}.{image_format}',
                 image))
 
 
@@ -297,7 +317,6 @@ class UltrasoundVideo(UltrasoundVideoIO, UltrasoundVideoProcessor):
 
     dob:datetime=datetime(1900,1,1)
     procedure:str=''
-    transducer:str='linear'
     _use_cython:bool = False
 
 
@@ -336,15 +355,6 @@ class UltrasoundVideo(UltrasoundVideoIO, UltrasoundVideoProcessor):
                 return self.data[idx]
 
     @property
-    def orig_size(self):
-        return self.data.shape[1:3]
-
-    @property
-    def roi_size(self):
-        X0, Y0, X1, Y1 = self._roi_coordinates
-        return self.data[:, Y0:Y1, X0:X1, :].shape[1:3]
-
-    @property
     def channels(self):
         return self.data.shape[-1]
 
@@ -374,45 +384,31 @@ class USVBatchConverter:
 
     """
 
-    from joblib import cpu_count
-
-    dicom = Path('../data/DICOM_FILES/01')
-    dicoms = [file for file in dicom.iterdir()] # dicom : DICOM directory
-    dicoms.sort()
-    batch_size = ceil(len(dicoms) / cpu_count())
-    batches = [dicoms[i:i+batch_size]for i in range(0, len(dicoms), batch_size)]
-    n_jobs = len(batches)
+    dicom = Path('../data/DICOM_FILES/01')  # dicom : DICOM file directory
 
 
     # Converting to avi
-    %%time
-    converter = USVBatchConverter(n_jobs=n_jobs, backend='threading',
-                            output_dir='test_output_avi', output_formats=['avi'],
-                            batches=batches)
-    converter.run()
-    CPU times: user 2min 53s, sys: 25.2 s, total: 3min 18s
-    Wall time: 39.2 s
 
-    # Converting to avi & png
-    %%time
-    converter = USVBatchConverter(n_jobs=n_jobs, backend='threading',
-                            output_dir='new', output_formats=['png', 'avi'],
-                            batches=batches)
-    converter.run()
-    CPU times: user 5min 14s, sys: 44.8 s, total: 5min 59s
-    Wall time: 1min 3s
+    converter = USVBatchConverter(backend='threading',
+                              input_dir=dicom,
+                              output_dir='test_output_avi',
+                              output_formats=['avi'])
+
+    %%timeit
+    converter.run()  # processing: `cvtColor`, `trim`, output: `avi`
+    >> 48.2 s ± 2.95 s per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
     """
 
-    n_jobs:int
     backend:str
+    input_dir:Union[Path, str]
     output_dir:Union[Path, str]
     output_formats:List[str]
-    batches:list
 
-    def __post_init__(self):
-        self.parallel = Parallel(n_jobs=self.n_jobs,
-                                 backend=self.backend)
+    # def __post_init__(self):
+    #     self.batches = create_file_batch(self.input_dir)
+    #     self.parallel = Parallel(n_jobs=len(self.batches),
+    #                              backend=self.backend)
 
     @staticmethod
     def create_writers(io_object:UltrasoundVideoIO,
@@ -428,16 +424,19 @@ class USVBatchConverter:
         return output_writers
 
 
-    def convert(self, input_file:Union[Path, str], **kwargs):
+    def convert(self, input_file:Union[Path, str],
+                processing:List[str]=US_PROCESSING,
+                **kwargs):
 
         ultrasound_video = UltrasoundVideo(input_file,
-                                           output_dir=self.output_dir)
+                                           output_dir=self.output_dir,
+                                           **kwargs)
 
         if ultrasound_video.is_video:
             writers = USVBatchConverter.create_writers(ultrasound_video,
                                                        self.output_formats,
+                                                       processing=processing,
                                                        **kwargs)
-            processing = kwargs.get('processing', US_PROCESSING)
             for i, frame in enumerate(ultrasound_video.data):
                 frame = ultrasound_video.process(frame, processing)
                 for writer in writers:
@@ -458,5 +457,5 @@ class USVBatchConverter:
         [self.convert(file, **kwargs) for file in batch]
 
     def run(self, **kwargs):
-        self.parallel(delayed(self.batch_convert)(batch, **kwargs)
-                      for batch in self.batches)
+        dicoms = [dicom for dicom in self.input_dir.iterdir()]
+        batch_process(dicoms, self.convert, n_workers=cpu_count(), sep_progress=True, **kwargs)
