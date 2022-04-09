@@ -1,12 +1,13 @@
 import cv2
 import math
+from itertools import chain
 from joblib import cpu_count
 from pathlib import Path
 from datetime import datetime
 from typing import Tuple, Union, List
 from .formatting import format_filename
 
-__all__ = ['create_video_writer', 'create_file_batch']
+__all__ = ['create_video_writer', 'read_DICOM_dir']
 
 def create_video_writer(format:str,
                          frame_size:Tuple[int],
@@ -27,15 +28,32 @@ def create_video_writer(format:str,
 
     return cv2.VideoWriter(str(filename), fourcc, fps, frame_size)
 
+def _is_dir(path:Union[Path, str])->bool:
 
-def _read_DICOM_dir(dicom_dir:Union[Path, str], sorted=False)->List[Path]:
+    try:
+        file = open(Path(str(path)))
+        return False
+    except IsADirectoryError:
+        return True
 
-    dicoms = [dicom for dicom in Path(str(dicom_dir)).iterdir()]
+def _read_DICOM_dir(dicom_dir:Union[Path, str], l:list, sorted=False)->List[Path]:
+
+    if not _is_dir(dicom_dir):
+        return l
+
+    for item in Path(str(dicom_dir)).iterdir():
+
+        l += (_read_DICOM_dir(item, l, sorted) if _is_dir(item) else
+            [Path(str(item))])
 
     if sorted:
-        dicoms.sort()
+        l.sort()
 
-    return dicoms
+    return list(set(l))
+
+def read_DICOM_dir(dicom_dir:Union[Path, str], sorted=False)->List[Path]:
+
+    return _read_DICOM_dir(dicom_dir, [], sorted)
 
 
 def create_file_batch(dicom_dir:Union[Path, str], **kwargs):
