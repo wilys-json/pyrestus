@@ -16,9 +16,11 @@ This module offers basic functionalities for extracting raw segmentations perfor
 
 `-l`, `--lines-only` - only extract contours / lines from segmentation; otherwise, a flood fill method will be applied to the segmentation (default: false)
 
-`-m`, `--show-mask` - show the final extraction mask
+`-m`, `--show-mask` - show the final extraction mask (default:false)
 
-`-o`, `--output` - the output directory
+`-o`, `--output` `path/to/output/directory` - the output directory (default: `outputs`)
 
 ## Evaluation Metrics
-  Under construction.
+```math
+SE = \frac{\sigma}{\sqrt{n}}
+```
