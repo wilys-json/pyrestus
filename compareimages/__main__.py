@@ -29,6 +29,8 @@ import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
 from datetime import datetime
+from tqdm_batch import batch_process
+from joblib import cpu_count
 from src import (contains_dir, make_hyperlink, aggregate,
                  make_rater_dataframe, make_raters_dataframe,
                  get_segmentation_mask, dice_scores, hausdorff_distances)
@@ -72,14 +74,29 @@ def make_dataframe(args: argparse.Namespace) -> pd.DataFrame:
 
 def generate_mask(df: pd.DataFrame, args: argparse.Namespace, **kwargs):
     print(f"Generating segmentation mask from {args.inputFolder}...")
+
+    # Parallel processing
+    batch_process(df.stack().values, get_segmentation_mask,
+                  n_workers = cpu_count(),
+                  sep_progress=True, save=True,
+                  show_original=args.show_original,
+                  show_binary=args.show_binary,
+                  show_mask=args.show_mask,
+                  lines_only=args.lines_only,
+                  timestamp=kwargs.get('timestamp'),
+                  output_dir=kwargs.get('output_dir'))
+    """
+    # Iterative processing
     df.progress_applymap(
         lambda x: get_segmentation_mask(str(x), save=True,
                                       show_original=args.show_original,
                                       show_binary=args.show_binary,
                                       show_mask=args.show_mask,
                                       lines_only=args.lines_only,
-                                      timestamp=kwargs.get('timestamp')))
-    print(f"{df.size} segmentation masks generated in {args.inputFolder}.")
+                                      timestamp=kwargs.get('timestamp'),
+                                      output_dir=kwargs.get('output_dir')))
+    """
+    print(f"{df.size} segmentation masks generated in {kwargs.get('output_dir')}.")
 
 
 def calculate_dice_score(df: pd.DataFrame, args: argparse.Namespace, **kwargs):
@@ -173,7 +190,7 @@ def main():
     parser.add_argument('inputFolder', type=str, nargs='?', default='')
     parser.add_argument('--generate-mask', dest='function', action='store_const',
                         const='generate_mask', default='')
-    parser.add_argument('-o', '--show-original', action='store_true',
+    parser.add_argument('-r', '--show-original', action='store_true',
                         default=False)
     parser.add_argument('-b', '--show-binary', action='store_true',
                         default=False)
@@ -218,6 +235,7 @@ def main():
                         const='contour', default='thin')
     parser.add_argument('--raw-points', action='store_const', dest='method',
                         const='raw_points', default='thin')
+    parser.add_argument('-o', '--output', type=str, default=OUTPUT_DIR)
 
 
     args = parser.parse_args()
@@ -232,20 +250,20 @@ def main():
     if not args.inputFolder:
         print("""No input folders given.
          Usage: compaireimages $input_folder
-          [--get-segmentation-mask] / [--calculate-dice-score] /
+          [--generate-mask] / [--calculate-dice-score] /
           [--calculate-hausdorff-distance]""")
         sys.exit(0)
 
     if not args.function:
         print("""You must select any of these functions:\n
          compaireimages $input_folder
-         [--get-segmentation-mask] / [--calculate-dice-score] /
+         [--generate-mask] / [--calculate-dice-score] /
          [--calculate-hausdorff-distance]""")
         sys.exit(0)
 
-    output_dir = Path(OUTPUT_DIR)
+    output_dir = Path(args.output)
     if not output_dir.is_dir():
-        output_dir.mkdir()
+        output_dir.mkdir(parents=True, exist_ok=True)
 
     df = make_dataframe(args)
 

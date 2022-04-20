@@ -23,7 +23,7 @@
 #################################################################################
 
 from tqdm_batch import batch_process
-from joblib import Parallel, delayed, cpu_count
+from joblib import cpu_count
 from .utils import format_filename, create_video_writer, read_DICOM_dir
 import pydicom
 import numpy as np
