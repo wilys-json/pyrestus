@@ -8,8 +8,17 @@ This module offers basic functionalities for extracting raw segmentations perfor
 
   `python3 compareimages path/to/segmentations --generate-mask`
 
+#### Optional flags
 
+`-r`, `--show-original` - the original segmentation will be shown during extraction (default: false)
 
+`-b`, `--show-binary` - the extraction will be shown as a binary image (default: false)
+
+`-l`, `--lines-only` - only extract contours / lines from segmentation; otherwise, a flood fill method will be applied to the segmentation (default: false)
+
+`-m`, `--show-mask` - show the final extraction mask
+
+`-o`, `--output` - the output directory
 
 ## Evaluation Metrics
   Under construction.
