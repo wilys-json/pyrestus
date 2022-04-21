@@ -341,7 +341,7 @@ class UltrasoundVideo(UltrasoundVideoIO, UltrasoundVideoProcessor):
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
-    def __len__(self):
+    def __len__(self)->int:
         return len(self.data)
 
     def __iter__(self):
@@ -355,6 +355,12 @@ class UltrasoundVideo(UltrasoundVideoIO, UltrasoundVideoProcessor):
         except KeyError:
             if not self.empty():
                 return self.data[idx]
+
+    def get(self, idx:int)->Image:
+        if not self.empty():
+            X0, Y0, X1, Y1 = self._roi_coordinates
+            img = self.cvtColor(self.data[idx][Y0:Y1, X0:X1, :])
+            return Image.fromarray(img)
 
     @property
     def channels(self):
