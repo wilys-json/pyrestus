@@ -356,8 +356,21 @@ class UltrasoundVideo(UltrasoundVideoIO, UltrasoundVideoProcessor):
             if not self.empty():
                 return self.data[idx]
 
-    def get(self, idx:int)->Image:
+    def get(self, *args):
+        """
+        Overloading function.
+        if `args` is dict.get() like, return Dataset.get(*args)
+        if `args` is dictionary keys like, return Dataset.get('key_string')
+        if `args` is int, return cropped Image by index.
+        """
+        if len(args) > 1:
+            return super().get(*args)
+
+        if not isinstance(args[0], int):
+            return super().get(args[0])
+
         if not self.empty():
+            idx = args[0]
             X0, Y0, X1, Y1 = self._roi_coordinates
             img = self.cvtColor(self.data[idx][Y0:Y1, X0:X1, :])
             return Image.fromarray(img)
