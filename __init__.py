@@ -1,4 +1,4 @@
-from .pyrestus import UltrasoundVideo, USVBatchConverter
+from .usv import UltrasoundVideo, USVBatchConverter
 from .annotations import (AnnotationRenderer, IOParameters,
                           XMLParameters, BoundingBox,
                           AnnotationManager)
