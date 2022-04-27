@@ -21,22 +21,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE #
 # SOFTWARE.                                                                     #
 #################################################################################
-import sys
-sys.path.insert(0, '..')
-import cv2
-import xml
-from pathlib import Path
-import numpy as np
-import xml.etree.ElementTree as ET
-from dataclasses import dataclass
-from typing import Tuple, Union, List
-from tqdm import tqdm
-from copy import deepcopy
-import pandas as pd
-from itertools import product
-from warnings import warn
+from abc import ABC, abstractmethod
 from ..utils import get_tag, get_frame_size
-from abc import abstractmethod
+import pandas as pd
+from copy import deepcopy
+from tqdm import tqdm
+from typing import Tuple, Union, List
+from dataclasses import dataclass
+import xml.etree.ElementTree as ET
+import numpy as np
+from pathlib import Path
+import xml
+import cv2
 
 # Global Parameters
 VIDEO_FORMATS = {'avi', 'mp4'}
@@ -44,25 +40,28 @@ IMAGE_FORMATS = {'png', 'jpg'}
 
 
 class Color:
-    COLORS = (
-        (0, 255, 0),
-        (255,0,255),
-        (255,255,0)
-    )
+    """
+    Color palette.
+    """
+    def __class_getitem__(cls, idx: int):
+        COLORS = (
+            (0, 255, 0),
+            (255, 0, 255),
+            (255, 255, 0)
+        )
+        idx = idx % len(COLORS)  # Comment out to disable cycle indexing
+        return COLORS[idx]
 
-    def __class_getitem__(cls, idx:int):
-        idx = idx % len(cls.COLORS)  # Comment out to disable cycle indexing
-        return cls.COLORS[idx]
 
 @dataclass
 class BoundingBox:
     """
     Helper class to encapsulate bounding box parameters.
     """
-    radius:int=2
-    thickness:int=1
-    shift=2
-    box_size=127
+    radius: int = 2
+    thickness: int = 1
+    shift = 2
+    box_size = 127
 
     def __post_init__(self):
         self.factor = (1 << self.shift)
@@ -73,14 +72,14 @@ class IOParameters:
     """
     Helper class to encapsulate i/o parameters.
     """
-    xml_file:List[Path]
-    frame_size:Tuple[int]
-    image_file_dir:str=''
-    output_dir:str=''
-    output_format:Tuple[str]=('avi', 'png')
-    output_suffix:str='annotated'
-    codec:str='MJPG'
-    fps:int=15
+    xml_file: List[Path]
+    frame_size: Tuple[int]
+    image_file_dir: str = ''
+    output_dir: str = ''
+    output_format: Tuple[str] = ('avi', 'png')
+    output_suffix: str = 'annotated'
+    codec: str = 'MJPG'
+    fps: int = 15
 
     def __post_init__(self):
 
@@ -97,8 +96,8 @@ class IOParameters:
             # Image writing function
             if output in IMAGE_FORMATS:
                 self.output_writers += [
-                    lambda name, image : (
-                        cv2.imwrite(str(output_dir/f'{name}-{self.output_suffix}.{output}'), image))
+                    lambda name, image: (
+                        cv2.imwrite(str(output_dir / f'{name}-{self.output_suffix}.{output}'), image))
                 ]
 
             # Video writer
@@ -106,10 +105,10 @@ class IOParameters:
 
                 fourcc = cv2.VideoWriter_fourcc(*self.codec)
                 self.output_writers += [
-                        cv2.VideoWriter(str(output_dir/f'{self.output_suffix}.{output}'),
-                                        fourcc,
-                                        self.fps,
-                                        self.frame_size)
+                    cv2.VideoWriter(str(output_dir / f'{self.output_suffix}.{output}'),
+                                    fourcc,
+                                    self.fps,
+                                    self.frame_size)
                 ]
 
 
@@ -118,42 +117,43 @@ class XMLParameters:
     """
     Helper class to encapsulate xml parsing parameters.
     """
-    image_tag:str='image'
-    image_attrib:str='name'
-    annotation_tag:str='points'
-    annotation_attrib:str='points'
-    match_attrib:str='name'
-    coordinate_sep:str=','
-    points_sep:str=';'
+    image_tag: str = 'image'
+    image_attrib: str = 'name'
+    annotation_tag: str = 'points'
+    annotation_attrib: str = 'points'
+    match_attrib: str = 'name'
+    coordinate_sep: str = ','
+    points_sep: str = ';'
 
-    _dir_begin_at:int=0
+    _dir_begin_at: int = 0
 
     def __post_init__(self):
         self.image_tag = './' + self.image_tag
         self.annotation_tag = './' + self.annotation_tag
-        self.get_image_attrib = lambda tag : Path(*Path(tag.attrib[self.image_attrib]).parts[self._dir_begin_at:])
-        self.get_annotation_attrib = lambda tag : tag.attrib[self.annotation_attrib]
+        self.get_image_attrib = lambda tag: Path(
+            *Path(tag.attrib[self.image_attrib]).parts[self._dir_begin_at:])
+        self.get_annotation_attrib = lambda tag: tag.attrib[self.annotation_attrib]
 
 
 class AnnotationManager:
 
-
-    def __init__(self):
-        pass
+    """
+    Helper class to extract parameters of interst from XML tags.
+    """
 
     @staticmethod
-    def get_coordinate(xmlparams:XMLParameters,
-                        coordinate:Union[ET.Element, str]):
+    def get_coordinate(xmlparams: XMLParameters,
+                       coordinate: Union[ET.Element, str]):
         sep = xmlparams.coordinate_sep
         if isinstance(coordinate, ET.Element):
             coordinate = xmlparams.get_annotation_attrib(coordinate)
         coordinate = coordinate.split(sep)
 
-        return tuple(map(float,coordinate))
+        return tuple(map(float, coordinate))
 
     @staticmethod
-    def get_coordinates(xmlparams:XMLParameters,
-                        coordinates:List[str]):
+    def get_coordinates(xmlparams: XMLParameters,
+                        coordinates: List[str]):
 
         sep = xmlparams.points_sep
         coordinates = xmlparams.get_annotation_attrib(coordinates).split(sep)
@@ -161,9 +161,9 @@ class AnnotationManager:
                 for coord in coordinates]
 
     @staticmethod
-    def get_annotation_points(xml_file:Path,
-                              xmlparams:XMLParameters,
-                              normalized:bool=False,
+    def get_annotation_points(xml_file: Path,
+                              xmlparams: XMLParameters,
+                              normalized: bool = False,
                               include_img_index=False):
 
         points = []
@@ -172,7 +172,7 @@ class AnnotationManager:
         for tag in get_tag(xml_file, xmlparams.image_tag):
 
             # Find points
-            point_tag =  tag.findall(xmlparams.annotation_tag)
+            point_tag = tag.findall(xmlparams.annotation_tag)
 
             if point_tag:
 
@@ -180,7 +180,8 @@ class AnnotationManager:
                                                               point_tag[0])
 
                 if normalized:
-                    coordinate = tuple(map(lambda x, y : (x/y), coordinate, frame_size))
+                    coordinate = tuple(
+                        map(lambda x, y: (x / y), coordinate, frame_size))
 
                 if include_img_index:
 
@@ -191,22 +192,27 @@ class AnnotationManager:
 
         if include_img_index:
 
-            output_df = pd.DataFrame(points, columns=['image_path', 'x', 'y']).set_index('image_path')
+            output_df = pd.DataFrame(
+                points, columns=['image_path', 'x', 'y']).set_index('image_path')
             return output_df
 
         return np.array(points)
 
     @staticmethod
-    def get_sequence(ioparams:IOParameters,
-                     xmlparams:XMLParameters,
-                     start:Union[int, None]=None,
-                     end:Union[int, None]=None,
-                     step:Union[int, None]=None):
+    def get_sequence(ioparams: IOParameters,
+                     xmlparams: XMLParameters,
+                     start: Union[int, None] = None,
+                     end: Union[int, None] = None,
+                     step: Union[int, None] = None):
 
+        """
+        Retrieve image file sequence. Applicable for inter-rater reliability.
+        """
 
         for file in ioparams.xml_file:
 
-            sequences = [list(get_tag(file, xmlparams.image_tag))[start:end:step] for file in ioparams.xml_file]
+            sequences = [list(get_tag(file, xmlparams.image_tag))[
+                start:end:step] for file in ioparams.xml_file]
 
         if not ioparams.overlay:
             return sequences
@@ -215,67 +221,63 @@ class AnnotationManager:
 
         # Get sequence +/- attributes
         if xmlparams.match_attrib:
-            match_sequences = [[tag.attrib[xmlparams.match_attrib] for tag in sequence] for sequence in sequences]
+            match_sequences = [[tag.attrib[xmlparams.match_attrib]
+                                for tag in sequence] for sequence in sequences]
 
         # Sanity Check : same image paths
         seq_cache = []
         for i, sequence in enumerate(match_sequences):
-            if i > 0 :
+            if i > 0:
                 assert seq_cache == sequence, \
-                "Input sequence contains different image"
+                    "Input sequence contains different image"
             seq_cache = sequence
 
         return sequences
 
 
-class RendererInterface:
+class RendererInterface(ABC):
+
     @abstractmethod
     def draw(self,
-             img:np.ndarray,
+             img: np.ndarray,
              annotation_tag,
-             index:int,
+             index: int,
              **kwargs):
         pass
+
 
 @dataclass
 class RendererBase:
 
-    ioparams:IOParameters
-    xmlparams:XMLParameters
-    start:Union[int, None]=None
-    end:Union[int, None]=None
-    step:Union[int, None]=None
+    ioparams: IOParameters
+    xmlparams: XMLParameters
+    start: Union[int, None] = None
+    end: Union[int, None] = None
+    step: Union[int, None] = None
 
     def __post_init__(self):
         self.writers = self.ioparams.output_writers
 
     @staticmethod
-    def _floats2ints(coordinates:Tuple[float], factor:int):
+    def _floats2ints(coordinates: Tuple[float], factor: int):
         x, y = coordinates
         return int(x * factor), int(y * factor)
+
 
 @dataclass
 class PointRenderer(AnnotationManager, RendererInterface, RendererBase):
 
-    bounding_box:BoundingBox = BoundingBox()
+    bounding_box: BoundingBox = BoundingBox()
 
     def draw(self,
-            img:np.ndarray,
-            annotation_tag,
-            index:int,
-            **kwargs):
-
-        """
-        Implement draw() from RendererInterface
-        Draw Annotations in `img`.
-        """
+             img: np.ndarray,
+             annotation_tag,
+             index: int,
+             **kwargs):
 
         # Center point
         x, y = self.get_coordinate(self.xmlparams, annotation_tag[0])
-        # x, y = tuple(map(float, self.xmlparams.get_annotation_attrib(points_tag[0]).split(',')))
-        # x = int(x * self.bounding_box.factor)
-        # y = int(y * self.bounding_box.factor)
-        x, y = self._floats2ints((x,y), self.bounding_box.factor)
+        x, y = self._floats2ints((x, y), self.bounding_box.factor)
 
         # Unpack parameters
         dist = self.bounding_box.box_size // 2
@@ -285,11 +287,12 @@ class PointRenderer(AnnotationManager, RendererInterface, RendererBase):
         color = Color[index]
 
         # Draw circle and bounding box
-        pt1, pt2 = (x-dist, y-dist), (x+dist, y+dist)
+        pt1, pt2 = (x - dist, y - dist), (x + dist, y + dist)
         cv2.circle(img, (x, y), radius, color, thickness, shift=shift)
         cv2.rectangle(img, pt1, pt2, color, thickness=thickness, shift=shift)
 
         return img
+
 
 @dataclass
 class LineRenderer(AnnotationManager, RendererInterface, RendererBase):
@@ -300,24 +303,25 @@ class LineRenderer(AnnotationManager, RendererInterface, RendererBase):
         return contour
 
     def draw(self,
-            img:np.ndarray,
-            contour_tag:List[ET.Element],
-            index:int,
-            **kwargs):
+             img: np.ndarray,
+             contour_tag: List[ET.Element],
+             index: int,
+             **kwargs):
 
-            contour = self._get_contour(contour_tag[0])
-            cv2.polylines(img, [contour], False, Color[index], **kwargs)
+        contour = self._get_contour(contour_tag[0])
+        cv2.polylines(img, [contour], False, Color[index], **kwargs)
 
-            return img
+        return img
+
 
 @dataclass
 class ContourRenderer(LineRenderer):
 
     def draw(self,
-            img:np.ndarray,
-            contour_tag:List[ET.Element],
-            index:int,
-            **kwargs):
+             img: np.ndarray,
+             contour_tag: List[ET.Element],
+             index: int,
+             **kwargs):
 
         contour = self._get_contour(contour_tag[0])
         cv2.polylines(img, [contour], True, Color[index], **kwargs)
@@ -325,19 +329,24 @@ class ContourRenderer(LineRenderer):
         return img
 
 
+class RendererFactory:
+
+    @classmethod
+    def create(cls, option, **kwargs):
+        renderers = dict(
+            point=PointRenderer,
+            line=LineRenderer,
+            contour=ContourRenderer
+        )
+        return renderers[option](**kwargs)
+
+
 class AnnotationRenderer:
 
-    rendering = dict(
-        point = PointRenderer,
-        line = LineRenderer,
-        contour = ContourRenderer
-    )
-
     def __init__(self, option, **kwargs):
-        self.renderer = self.rendering[option](**kwargs)
+        self.renderer = RendererFactory.create(option, **kwargs)
 
     def run(self, **kwargs):
-
         """
         Render Annotations in `ioparams.output_format`.
         """
@@ -350,11 +359,13 @@ class AnnotationRenderer:
         writers = self.renderer.writers
 
         # Check sequence
-        sequences = self.renderer.get_sequence(ioparams, xmlparams, start, end, step)
+        sequences = self.renderer.get_sequence(
+            ioparams, xmlparams, start, end, step)
 
         # Create empty image list
-        image_files = [str(Path(ioparams.image_file_dir) / xmlparams.get_image_attrib(image))
-                       for image in sequences[0]]
+        image_files = [str(Path(ioparams.image_file_dir) /
+                           xmlparams.get_image_attrib(image))
+                           for image in sequences[0]]
 
         # Iterate over images
         for i, image_file in enumerate(tqdm(image_files)):
@@ -362,7 +373,9 @@ class AnnotationRenderer:
             # Iterate over annotations
             for j, sequence in enumerate(sequences):
 
-                assert image_file == (str(Path(ioparams.image_file_dir) / xmlparams.get_image_attrib(sequence[i])))
+                assert image_file == (
+                    str(Path(ioparams.image_file_dir) /
+                    xmlparams.get_image_attrib(sequence[i])))
 
                 if j == 0:
                     assert Path(image_file).exists()
@@ -379,7 +392,8 @@ class AnnotationRenderer:
                 try:
                     writer.write(img)
                 except AttributeError:
-                    writer(f"{str(Path(image_file).stem).replace('/', '-')}-{str(i).zfill(5)}", img)
+                    writer(
+                        f"{str(Path(image_file).stem).replace('/', '-')}-{str(i).zfill(5)}", img)
 
         for writer in writers:
             try:
