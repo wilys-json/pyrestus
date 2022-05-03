@@ -18,6 +18,7 @@ segmented/
 *.so
 *.csv
 *.pyd
+*.json
 
 venv/
 
