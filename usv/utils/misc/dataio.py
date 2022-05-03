@@ -38,7 +38,7 @@ def _is_dir(path:Union[Path, str])->bool:
 
 def _read_DICOM_dir(dicom_dir:Union[Path, str], l:list, sorted=False)->List[Path]:
 
-    if not _is_dir(dicom_dir):
+    if not Path(str(dicom_dir)).is_dir():
         return l
 
     for item in Path(str(dicom_dir)).iterdir():
