@@ -28,13 +28,13 @@ def create_video_writer(format:str,
 
     return cv2.VideoWriter(str(filename), fourcc, fps, frame_size)
 
-def _is_dir(path:Union[Path, str])->bool:
-
-    try:
-        file = open(Path(str(path)), 'r')
-        return False
-    except IsADirectoryError:
-        return True
+# def _is_dir(path:Union[Path, str])->bool:
+#
+#     try:
+#         file = open(Path(str(path)), 'r')
+#         return False
+#     except IsADirectoryError:
+#         return True
 
 def _read_DICOM_dir(dicom_dir:Union[Path, str], l:list, sorted=False)->List[Path]:
 
