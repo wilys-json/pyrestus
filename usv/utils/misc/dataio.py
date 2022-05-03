@@ -31,7 +31,7 @@ def create_video_writer(format:str,
 def _is_dir(path:Union[Path, str])->bool:
 
     try:
-        file = open(Path(str(path)))
+        file = open(Path(str(path)), 'r')
         return False
     except IsADirectoryError:
         return True
