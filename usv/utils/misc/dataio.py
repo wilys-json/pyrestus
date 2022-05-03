@@ -43,7 +43,7 @@ def _read_DICOM_dir(dicom_dir:Union[Path, str], l:list, sorted=False)->List[Path
 
     for item in Path(str(dicom_dir)).iterdir():
 
-        l += (_read_DICOM_dir(item, l, sorted) if _is_dir(item) else
+        l += (_read_DICOM_dir(item, l, sorted) if item.is_dir() else
             [Path(str(item))])
 
     if sorted:
