@@ -75,7 +75,7 @@ def getVideos(file: Path,
     fps = kwargs.get('fps', 15)
 
     cap = cv2.VideoCapture(str(file))
-    output_dir = output_dir / Path(*file.parts[-(keep_parents + 1):-1]) / d
+    output_dir = output_dir / Path(*file.parts[-(keep_parents + 1):-1]) / file.stem
     output_dir.mkdir(exist_ok=True, parents=True)
     output_file = output_dir / f'{file.stem.replace(".", "-")}.{video_format}'
 
