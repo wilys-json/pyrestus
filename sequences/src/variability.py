@@ -32,6 +32,11 @@ import sys
 sys.path.insert(0, '..')
 from .mlcs import longest_common_subsequence, mlcs_leveled_DAG
 
+__all__ = [
+    "extract_variability"
+]
+
+
 FUNCTIONS = [
     "sequence_diversity",
     "sequence_cohesion",
