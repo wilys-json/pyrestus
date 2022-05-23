@@ -45,9 +45,10 @@ class Color:
     """
     def __class_getitem__(cls, idx: int):
         COLORS = (
-            (0, 255, 0),
             (255, 0, 255),
-            (255, 255, 0)
+            (255, 255, 0),
+            (0, 255, 255),
+            (0, 255, 0)
         )
         idx = idx % len(COLORS)  # Comment out to disable cycle indexing
         return COLORS[idx]
@@ -284,7 +285,7 @@ class PointRenderer(AnnotationManager, RendererInterface, RendererBase):
         radius = self.bounding_box.radius * self.bounding_box.factor
         thickness = self.bounding_box.thickness
         shift = self.bounding_box.shift
-        color = Color[index]
+        color = kwargs.pop('color', Color[index])
 
         # Draw circle and bounding box
         pt1, pt2 = (x - dist, y - dist), (x + dist, y + dist)
@@ -309,7 +310,8 @@ class LineRenderer(AnnotationManager, RendererInterface, RendererBase):
              **kwargs):
 
         contour = self._get_contour(contour_tag[0])
-        cv2.polylines(img, [contour], False, Color[index], **kwargs)
+        color = kwargs.pop('color', Color[index])
+        cv2.polylines(img, [contour], False, color=color, **kwargs)
 
         return img
 
@@ -324,7 +326,8 @@ class ContourRenderer(LineRenderer):
              **kwargs):
 
         contour = self._get_contour(contour_tag[0])
-        cv2.polylines(img, [contour], True, Color[index], **kwargs)
+        color = kwargs.pop('color', Color[index])
+        cv2.polylines(img, [contour], True, color=color, **kwargs)
 
         return img
 

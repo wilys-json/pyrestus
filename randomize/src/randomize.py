@@ -93,14 +93,13 @@ def generate_video(video_file:str , idx:int, folder:str='output'):
    cap.release()
 
 
-def generate_image(image_file:str , idx:int , folder:str='output'):
+def generate_image(image_file:str , idx:int, padding:int=50, folder:str='output'):
     """
     Generate an image from `image_file` with `idx`
     in the lower left corner to `folder`.
     """
     img = cv2.imread(image_file)
     h, w, c = img.shape
-    padding = 50
     org = (padding, h - padding)
     font = cv2.FONT_HERSHEY_SIMPLEX
     fontScale = 1

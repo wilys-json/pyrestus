@@ -39,7 +39,7 @@ __all__ = [
 
 FUNCTIONS = [
     "sequence_diversity",
-    "sequence_cohesion",
+    "sequence_adhesiveness",
     "execution_variability",
     "execution_entropy",
 ]
@@ -55,7 +55,7 @@ def sequence_diversity(sequences: pd.Series, *args, **kwargs) -> float:
     return np.unique(sequences.values).size / size
 
 
-def sequence_cohesion(sequences: pd.Series, characters: list,
+def sequence_adhesiveness(sequences: pd.Series, characters: list,
                       *args, **kwargs) -> float:
     """
     Return an index of 0 to 1, indicating how similar / coheisve
