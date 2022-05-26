@@ -42,7 +42,6 @@ from pydicom import FileDataset
 from dataclasses import dataclass
 from typing import Tuple, Union, List, Callable
 from warnings import warn
-from IPython import display
 from pydicom.errors import InvalidDicomError
 import pyximport
 pyximport.install()
