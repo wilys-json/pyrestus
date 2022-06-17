@@ -13,4 +13,5 @@ pip3 install virtualenv virtualenvwrapper &&
 python3 -m virtualenv venv &&
 source venv/bin/activate &&
 pip3 install -r requirements-core.txt &&
+pip3 install -r requirements.txt
 python3 -m setup build_ext --inplace -q
