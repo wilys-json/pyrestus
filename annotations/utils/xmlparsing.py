@@ -24,11 +24,12 @@
 
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from typing import List
+from typing import List, Union
+
 
 __all__ = [
     'get_tag',
-    'get_frame_size'
+    'get_frame_size',
 ]
 
 def get_tag(xml_file: Path, tag: str, how: str = 'all'):

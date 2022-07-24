@@ -48,14 +48,21 @@ def getFrames(file: Path,
     output_dir.mkdir(exist_ok=True, parents=True)
     if cap.isOpened():
         i = kwargs.get('start_idx', 0)
+        padding = kwargs.get('padding', False)
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
             output_file = str(output_dir / f'{str(i).zfill(3)}.png')
             y1, y2, x1, x2 = cropping
-            cv2.imwrite(output_file, cv2.cvtColor(
-                frame[y1:y2, x1:x2, :], cv2.COLOR_BGR2GRAY))
+            cropped = cv2.cvtColor(
+                frame[y1:y2, x1:x2, :], cv2.COLOR_BGR2GRAY)
+            if padding:
+                frame = np.zeros((frame.shape[:-1]), dtype=np.int32)
+                frame[y1:y2, x1:x2] = cropped
+            else:
+                frame = cropped
+            cv2.imwrite(output_file, frame)
             i += 1
         cap.release()
         cv2.destroyAllWindows()

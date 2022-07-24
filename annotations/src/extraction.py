@@ -23,6 +23,7 @@
 #################################################################################
 from abc import ABC, abstractmethod
 from ..utils import get_tag, get_frame_size
+from ...usv import read_DICOM_dir
 import pandas as pd
 from copy import deepcopy
 from tqdm import tqdm
@@ -37,6 +38,52 @@ import cv2
 # Global Parameters
 VIDEO_FORMATS = {'avi', 'mp4'}
 IMAGE_FORMATS = {'png', 'jpg'}
+
+
+def retrieve_template(data_dir: Union[Path, str],
+                      img_dir: Union[Path, str],
+                      img_frame: str,
+                      x: Union[float, str],
+                      y: Union[float, str],
+                      img_format:str ='.png',
+                      **kwargs) -> np.ndarray:
+
+    """
+    Return an image template for SiamFC training.
+    Image will be of center point (x,y).
+    """
+
+    img_pth = Path(str(data_dir)) / img_dir / f'{img_frame}{img_format}'
+    x1, y1, x2, y2 = cropping_dim(x,y,**kwargs)
+
+    img = cv2.imread(str(img_pth))
+
+    if img is not None:
+        return cv2.imread(str(img_pth))[y1:y2, x1:x2, :]
+
+    return None
+
+
+def cropping_dim(x: Union[str, float],
+                 y: Union[str, float],
+                 **kwargs) -> Tuple[int]:
+
+    """
+    Return tuple of (left, top, right, bottom) pixel address
+    w.r.t. a defined bounding box.
+
+    Bounding Box defined in **kwargs
+    `box_size` = dimension of the bounding box, assumed to be a square
+    `shift` = bit shift, pass into OpenCV functions
+    """
+
+    bounding_box = BoundingBox(**kwargs)
+    x, y = RendererBase._floats2ints((float(x), float(y)),
+                                      bounding_box.factor)
+    x1, y1 = map(lambda i : (i // bounding_box.factor) \
+                            - (bounding_box.box_size //2), (x,y))
+
+    return (x1, y1, x1 + bounding_box.box_size, y1 + bounding_box.box_size)
 
 
 class Color:
@@ -118,6 +165,9 @@ class XMLParameters:
     """
     Helper class to encapsulate xml parsing parameters.
     """
+    structure_tag: str = 'track'
+    structure_attrib: str = 'label'
+    target_structure: str = 'HB'
     image_tag: str = 'image'
     image_attrib: str = 'name'
     annotation_tag: str = 'points'
@@ -125,7 +175,10 @@ class XMLParameters:
     match_attrib: str = 'name'
     coordinate_sep: str = ','
     points_sep: str = ';'
+    source: str = ''
+    find_strcuture: bool = False
 
+    _avi_integrated: bool = False
     _dir_begin_at: int = 0
 
     def __post_init__(self):
@@ -343,17 +396,20 @@ class RendererFactory:
         )
         return renderers[option](**kwargs)
 
+class VideoExtractor:
+
+    @classmethod
+    def extract(cls, video_dir, target_dir, video_format='.avi'):
+        file_paths = read_DICOM_dir(video_dir)
+        file_paths = {path.name : path for path in file_paths
+                                        if path.suffix == video_format}
 
 class AnnotationRenderer:
 
     def __init__(self, option, **kwargs):
         self.renderer = RendererFactory.create(option, **kwargs)
 
-    def run(self, **kwargs):
-        """
-        Render Annotations in `ioparams.output_format`.
-        """
-
+    def _xml_img_rendering(self, **kwargs):
         ioparams = self.renderer.ioparams
         xmlparams = self.renderer.xmlparams
         start = self.renderer.start
@@ -403,3 +459,27 @@ class AnnotationRenderer:
                 writer.release()
             except AttributeError:
                 pass
+
+    def _avi_integrated_rendering(self, **kargs):
+
+        ioparams = self.renderer.ioparams
+        xmlparams = self.renderer.xmlparams
+        start = self.renderer.start
+        end = self.renderer.end
+        step = self.renderer.step
+        writers = self.renderer.writers
+        source = ioparams.source
+
+
+
+    def run(self, **kwargs):
+        """
+        Render Annotations in `ioparams.output_format`.
+        """
+
+        xmlparams = self.renderer.xmlparams
+        if not xmlparams._avi_integrated:
+            self._xml_img_rendering(**kwargs)
+
+        else:
+            pass
