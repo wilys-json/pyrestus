@@ -3,6 +3,7 @@
 randomized_*.csv
 .Randomized.csv
 
+.ipynb_checkpoints/
 
 
 log/

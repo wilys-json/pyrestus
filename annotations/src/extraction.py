@@ -54,19 +54,19 @@ def retrieve_template(data_dir: Union[Path, str],
     """
 
     img_pth = Path(str(data_dir)) / img_dir / f'{img_frame}{img_format}'
-    x1, y1, x2, y2 = cropping_dim(x,y,**kwargs)
+    y1, x1, y2, x2 = cropping_dim(x,y,**kwargs)
 
     img = cv2.imread(str(img_pth))
 
     if img is not None:
-        return cv2.imread(str(img_pth))[y1:y2, x1:x2, :]
+        return cv2.imread(str(img_pth))[x1:x2, y1:y2, :]
 
     return None
 
 
 def cropping_dim(x: Union[str, float],
                  y: Union[str, float],
-                 **kwargs) -> Tuple[int]:
+                 bbox_size: int) -> Tuple[int]:
 
     """
     Return tuple of (left, top, right, bottom) pixel address
@@ -77,13 +77,13 @@ def cropping_dim(x: Union[str, float],
     `shift` = bit shift, pass into OpenCV functions
     """
 
-    bounding_box = BoundingBox(**kwargs)
+    bounding_box = BoundingBox(box_size=bbox_size)
     x, y = RendererBase._floats2ints((float(x), float(y)),
                                       bounding_box.factor)
     x1, y1 = map(lambda i : (i // bounding_box.factor) \
                             - (bounding_box.box_size //2), (x,y))
 
-    return (x1, y1, x1 + bounding_box.box_size, y1 + bounding_box.box_size)
+    return (y1, x1, y1 + bounding_box.box_size, x1 + bounding_box.box_size)
 
 
 class Color:
@@ -101,7 +101,6 @@ class Color:
         return COLORS[idx]
 
 
-@dataclass
 class BoundingBox:
     """
     Helper class to encapsulate bounding box parameters.
@@ -111,8 +110,16 @@ class BoundingBox:
     shift = 2
     box_size = 127
 
-    def __post_init__(self):
-        self.factor = (1 << self.shift)
+    def __init__(self, radius:int=2,
+                       thickness:int=1,
+                       shift:int=2,
+                       box_size:int=127):
+
+        self.radius=radius
+        self.thickness=thickness
+        self.shift=shift
+        self.box_size=box_size
+        self.factor=1 << shift
 
 
 @dataclass
@@ -120,8 +127,8 @@ class IOParameters:
     """
     Helper class to encapsulate i/o parameters.
     """
-    xml_file: List[Path]
-    frame_size: Tuple[int]
+    xml_file: List[Path] = None
+    frame_size: Tuple[int] = None
     image_file_dir: str = ''
     output_dir: str = ''
     output_format: Tuple[str] = ('avi', 'png')
@@ -130,7 +137,9 @@ class IOParameters:
     fps: int = 15
 
     def __post_init__(self):
-
+        if not self.xml_file:
+            self.output_writers = []
+            return
         self.overlay = (len(self.xml_file) > 1)
         self.xml_file = [Path(str(file)) for file in self.xml_file]
         self.output_writers = []
@@ -303,14 +312,15 @@ class RendererInterface(ABC):
 @dataclass
 class RendererBase:
 
-    ioparams: IOParameters
-    xmlparams: XMLParameters
+    ioparams: IOParameters = None
+    xmlparams: XMLParameters = None
     start: Union[int, None] = None
     end: Union[int, None] = None
     step: Union[int, None] = None
 
     def __post_init__(self):
-        self.writers = self.ioparams.output_writers
+        if self.ioparams.output_writers:
+            self.writers = self.ioparams.output_writers
 
     @staticmethod
     def _floats2ints(coordinates: Tuple[float], factor: int):
@@ -330,7 +340,10 @@ class PointRenderer(AnnotationManager, RendererInterface, RendererBase):
              **kwargs):
 
         # Center point
-        x, y = self.get_coordinate(self.xmlparams, annotation_tag[0])
+        if isinstance(annotation_tag, str):
+            x, y = self.get_coordinate(self.xmlparams, annotation_tag[0])
+        else:
+            x, y = annotation_tag  # expects list / numpy array
         x, y = self._floats2ints((x, y), self.bounding_box.factor)
 
         # Unpack parameters

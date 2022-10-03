@@ -87,7 +87,8 @@ def getVideos(file: Path,
     output_file = output_dir / f'{file.stem.replace(".", "-")}.{video_format}'
 
     fourcc = cv2.VideoWriter_fourcc(*codec)
-    frame_size = (cropping[3] - cropping[2], cropping[1] - cropping[0])
+    y1, y2, x1, x2 = cropping
+    frame_size = (x2 - x1, y2 - y1)
     writer = cv2.VideoWriter(str(output_file), fourcc, fps, frame_size)
 
     if cap.isOpened():
@@ -96,8 +97,10 @@ def getVideos(file: Path,
             if not ret:
                 break
             y1, y2, x1, x2 = cropping
-            frame = frame[y1:y2, x1:x2]
-            writer.write(frame)
+            cropped = frame[y1:y2, x1:x2, :]
+            if frame_size != cropped.shape[::-1]:
+                cropped = cv2.resize(cropped, frame_size)
+            writer.write(cropped)
         cap.release()
         cv2.destroyAllWindows()
 
