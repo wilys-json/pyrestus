@@ -11,6 +11,9 @@ dependencies:
   - cython=0.29.*
   - pydicom=2.2.*
   - opencv=4.5.*
+  - libopencv
+  - py-opencv
+  - joblib
   - pip:
       - tqdm_batch
       - ipywidgets
