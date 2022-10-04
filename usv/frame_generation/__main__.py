@@ -9,7 +9,7 @@ from joblib import cpu_count
 from typing import Tuple
 import sys
 sys.path.insert(0, '..')
-from usv import read_DICOM_dir
+from usv import read_DICOM_dir, USVBatchConverter
 
 
 class _Config:
@@ -150,11 +150,17 @@ Worker 5: 100%|█████████████████████�
     parser.add_argument('-f', '--generate-frames', action='store_const',
                         dest='task', const='frames')
 
+    parser.add_argument('-d', '--dicom', action='store_const',
+                        dest='task', const='dicom')
+    parser.add_argument('-s', '--output-format', dest='output_formats',
+                        required=False, nargs='+', type=str,
+                        default=['avi', 'png'])
+
     args = parser.parse_args()
 
     tasks = {
         "videos" : getVideos,
-        "frames" : getFrames
+        "frames" : getFrames,
     }
 
     assert Path(args.input_dir).is_dir(), \
@@ -165,16 +171,25 @@ Worker 5: 100%|█████████████████████�
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)
-    input_dir = read_DICOM_dir(args.input_dir)
-    config = _Config(args.config)
-    task = tasks.get(args.task, getFrames)  # Default: generate frames
+    if args.task == 'dicom':
+        input_dir = Path(str(args.input_dir))
+        converter = USVBatchConverter(backend='threading',
+                                    input_dir=input_dir,
+                                    output_dir= output_dir,
+                                    output_formats=args.output_formats)
+        converter.run()
 
-    batch_process(input_dir,
-                  task,
-                  n_workers=cpu_count(),
-                  sep_progress=True,
-                  output_dir=output_dir,
-                  **config.items)
+    else:
+        input_dir = read_DICOM_dir(args.input_dir)
+        config = _Config(args.config)
+        task = tasks.get(args.task, getFrames)  # Default: generate frames
+
+        batch_process(input_dir,
+                      task,
+                      n_workers=cpu_count(),
+                      sep_progress=True,
+                      output_dir=output_dir,
+                      **config.items)
 
 
 if __name__ == '__main__':
