@@ -166,9 +166,6 @@ Worker 5: 100%|█████████████████████�
     assert Path(args.input_dir).is_dir(), \
         f"`{args.input_dir}` is not a valid directory."
 
-    assert Path(args.config).exists(), \
-        f"Config file `{args.config}` not found."
-
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)
     if args.task == 'dicom':
@@ -180,6 +177,8 @@ Worker 5: 100%|█████████████████████�
         converter.run()
 
     else:
+        assert Path(args.config).exists(), \
+            f"Config file `{args.config}` not found."
         input_dir = read_DICOM_dir(args.input_dir)
         config = _Config(args.config)
         task = tasks.get(args.task, getFrames)  # Default: generate frames
