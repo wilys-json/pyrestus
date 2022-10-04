@@ -25,7 +25,8 @@ export PATH="/usr/local/anaconda3/bin:$PATH"
 conda env create -f environment.yml
 
 # Activate environment
+eval "$(conda shell.bash hook)"
 conda activate pyrestus
 
 # Setup
-python3 -m setup build_ext --inplace -q 
+python3 -m setup build_ext --inplace -q
