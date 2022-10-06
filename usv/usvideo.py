@@ -158,6 +158,11 @@ class EmptyDataWarning(Warning):
     """
     pass
 
+class MissingCacheFileError(Exception):
+    """
+    Helper class to raise warning.
+    """
+    pass
 
 @dataclass(init=False)
 class UltrasoundVideoBase(FileDataset):
@@ -468,6 +473,7 @@ class USVBatchConverter:
     input_dir: Union[Path, str]
     output_dir: Union[Path, str]
     output_formats: List[str]
+    cache: Union[str, None]
 
     def _list_expected_outputs(self, dicoms):
 
@@ -479,14 +485,15 @@ class USVBatchConverter:
         output_filenames = dict()
 
         for dicom_filename, usvid in output_dicoms.items():
+            if dicom_filename.name.startswith('.'): continue
             for output_format in self.output_formats:
                 if output_format in VIDEO_FORMATS:
                     output_filenames.update({
-                    f'{format_filename(usvid.name, usvid.pid, usvid.start_time)}.{output_format}' : dicom_filename})
+                    f'{format_filename(usvid.name, usvid.pid, usvid.start_time)}.{output_format}' : str(dicom_filename)})
                 else:
                     output_filenames.update({
                         format_filename(usvid.name, usvid.pid,
-                        usvid.start_time) : dicom_filename})
+                        usvid.start_time) : str(dicom_filename)})
         return output_filenames
 
 
@@ -498,11 +505,20 @@ class USVBatchConverter:
 
         dicoms = read_DICOM_dir(self.input_dir)
         output_filenames = self._list_expected_outputs(dicoms)
-        existing_files = set([str(file.name)
+        
+        if self.cache:
+            try:
+                with open(self.cache) as file:
+                    existing_files = file.read().splitlines()
+            except FileNotFoundError:
+                raise MissingCacheFileError("Missing cache file `dircache`, \
+please use `frame_generation  -o [output_dir] -m` to generate a cach file first.")
+        else:
+            existing_files = set([str(file.name)
                         for file in Path(str(self.output_dir)).iterdir()])
 
         dicoms_to_convert = output_filenames.keys() - existing_files
-
+        if not dicoms_to_convert: return None
         return list(itemgetter(*dicoms_to_convert)(output_filenames))
 
 
@@ -566,6 +582,7 @@ class USVBatchConverter:
 
     def run(self, **kwargs):
         dicoms = self.check_dir()  # check and skip existing files
+        if not dicoms: return
         batch_process(dicoms, self.convert,
                       n_workers=cpu_count(),
                       sep_progress=True,

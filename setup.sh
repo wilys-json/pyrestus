@@ -18,8 +18,7 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Install Anaconda
 brew install --cask anaconda
-PREFIX=/usr/local/anaconda3
-export PATH="/usr/local/anaconda3/bin:$PATH"
+echo 'eval "export PATH="/usr/local/anaconda3/bin:$(PATH)"' >> $HOME/.zshrc
 
 # Install Dependencies
 conda env create -f environment.yml

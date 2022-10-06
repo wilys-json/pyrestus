@@ -154,8 +154,18 @@ Worker 5: 100%|█████████████████████�
     parser.add_argument('-s', '--output-format', dest='output_formats',
                         required=False, nargs='+', type=str,
                         default=['avi', 'png'])
+    parser.add_argument('-m', '--use-meta-cache', action='store_true', dest='cache',
+                        default=False)
+    parser.add_argument('--generate-meta', action='store_true', dest='meta',
+                        default=False)
 
     args = parser.parse_args()
+
+    if args.meta:
+        with open('dircache', 'w') as meta_file:
+            for file in Path(str(args.output_dir)).iterdir():
+                meta_file.write(f'{file.name}\n')
+        return
 
     tasks = {
         "videos" : getVideos,
@@ -171,10 +181,12 @@ Worker 5: 100%|█████████████████████�
     if args.task == 'dicom':
 
         input_dir = Path(str(args.input_dir))
+        cache = 'dircache' if args.cache else None
         converter = USVBatchConverter(backend='threading',
                                     input_dir=input_dir,
                                     output_dir= output_dir,
-                                    output_formats=args.output_formats)
+                                    output_formats=args.output_formats,
+                                    cache=cache)
         converter.run()
 
     else:
