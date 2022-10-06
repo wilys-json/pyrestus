@@ -54,6 +54,9 @@ warnings.formatwarning = (lambda message, category,
                           filename, lineno, line:
                           f'{category.__name__}: {message}')
 
+"""
+Global Variables & Lambda helper functions
+"""
 
 def DEFAULT_FUNCTION(x): return x
 
@@ -69,6 +72,9 @@ US_PROCESSING = ['cvtColor', 'trim']
 
 def US_SEQUENCE(x): return getattr(x, 'SequenceOfUltrasoundRegions')
 
+"""
+Lambda functions to set attributes to `UltrasoundVideo` object
+"""
 
 US_ATTRIBUTES = (
     lambda x: (
@@ -147,11 +153,18 @@ US_COLOR_CONVERSION = {
 
 
 class EmptyDataWarning(Warning):
+    """
+    Helper class to raise warning.
+    """
     pass
 
 
 @dataclass(init=False)
 class UltrasoundVideoBase(FileDataset):
+
+    """
+    Base class of `UltrasoundVideo`. Inhert from pydicom.FileDataset.
+    """
 
     def __init__(self, file: Union[Path, str]):
         try:
@@ -166,20 +179,33 @@ class UltrasoundVideoBase(FileDataset):
 
     @property
     def data(self) -> np.ndarray:
+        """
+        Data getter function.
+        """
         if hasattr(self, 'pixel_array'):
             return self.pixel_array
         return np.array([], dtype=np.uint8)
 
     def empty(self) -> bool:
+        """
+        Check if data is empty.
+        """
         return self.data.size == 0
 
     @property
     def is_video(self) -> bool:
+        """
+        Check if data contains video pixel array.
+        """
         return len(self.data.shape) == US_COLOR_VIDEO_DIM
 
 
 @dataclass
 class UltrasoundVideoProcessor:
+
+    """
+    Color and dimension processor for `UltrasoundVideo`
+    """
 
     delta_x: float = 0.0
     delta_y: float = 0.0
@@ -261,6 +287,10 @@ class UltrasoundVideoProcessor:
 @dataclass(init=False)
 class UltrasoundVideoIO(UltrasoundVideoBase):
 
+    """
+    Helper class to handle Input/Ouput of UltrasoundVideo resources.
+    """
+
     name: str = ''
     pid: str = ''
     start_time: datetime = datetime(1900, 1, 1)
@@ -286,6 +316,9 @@ class UltrasoundVideoIO(UltrasoundVideoBase):
 
     @property
     def roi_size(self):
+        """
+        Return the size of the Region of Interest
+        """
         X0, Y0, X1, Y1 = self._roi_coordinates
         return self.data[:, Y0:Y1, X0:X1, :].shape[1:3]
 
@@ -322,6 +355,10 @@ class UltrasoundVideoIO(UltrasoundVideoBase):
 
 @dataclass(init=False)
 class UltrasoundVideo(UltrasoundVideoIO, UltrasoundVideoProcessor):
+
+    """
+    Main class for processing Ultrasound DICOM files.
+    """
 
     dob: datetime = datetime(1900, 1, 1)
     procedure: str = ''
@@ -407,6 +444,10 @@ class USVBatchConverter:
 
     """
 
+    Batch converter using multithreading / multiprocessing.
+
+    Sample output -
+
     dicom = Path('../data/DICOM_FILES/01')  # dicom : DICOM file directory
 
 
@@ -430,6 +471,10 @@ class USVBatchConverter:
 
     def _list_expected_outputs(self, dicoms):
 
+        """
+        Protected function - return a list of expected outputs from conversion.
+        """
+
         output_dicoms = {dicom: UltrasoundVideo(dicom) for dicom in dicoms}
         output_filenames = dict()
 
@@ -447,6 +492,10 @@ class USVBatchConverter:
 
     def check_dir(self):
 
+        """
+        Returns necessary DICOM files for conversion. Skip existing files.
+        """
+
         dicoms = read_DICOM_dir(self.input_dir)
         output_filenames = self._list_expected_outputs(dicoms)
         existing_files = set([str(file.name)
@@ -462,6 +511,11 @@ class USVBatchConverter:
     def create_writers(io_object: UltrasoundVideoIO,
                        output_formats: List[str], **kwargs):
 
+        """
+        Prepare image / video writers for output.
+        Return either or both Image or VideoWriter depending on `output_formats`.
+        """
+
         output_writers = []
         for output_format in output_formats:
             output_writers += [io_object.VideoWriter(output_format, **kwargs)
@@ -474,6 +528,10 @@ class USVBatchConverter:
     def convert(self, input_file: Union[Path, str],
                 processing: List[str] = US_PROCESSING,
                 **kwargs):
+
+        """
+        Converts `input_file` to desired `self.output_formats`.
+        """
 
         ultrasound_video = UltrasoundVideo(input_file,
                                            output_dir=self.output_dir,
@@ -507,7 +565,7 @@ class USVBatchConverter:
         [self.convert(file, **kwargs) for file in batch]
 
     def run(self, **kwargs):
-        dicoms = self.check_dir()
+        dicoms = self.check_dir()  # check and skip existing files
         batch_process(dicoms, self.convert,
                       n_workers=cpu_count(),
                       sep_progress=True,
