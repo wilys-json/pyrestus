@@ -149,7 +149,6 @@ Worker 5: 100%|█████████████████████�
                         dest='task', const='videos')
     parser.add_argument('-f', '--generate-frames', action='store_const',
                         dest='task', const='frames')
-
     parser.add_argument('-d', '--dicom', action='store_const',
                         dest='task', const='dicom')
     parser.add_argument('-s', '--output-format', dest='output_formats',
@@ -168,7 +167,9 @@ Worker 5: 100%|█████████████████████�
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)
+
     if args.task == 'dicom':
+
         input_dir = Path(str(args.input_dir))
         converter = USVBatchConverter(backend='threading',
                                     input_dir=input_dir,
@@ -177,8 +178,10 @@ Worker 5: 100%|█████████████████████�
         converter.run()
 
     else:
+
         assert Path(args.config).exists(), \
             f"Config file `{args.config}` not found."
+
         input_dir = read_DICOM_dir(args.input_dir)
         config = _Config(args.config)
         task = tasks.get(args.task, getFrames)  # Default: generate frames

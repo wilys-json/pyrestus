@@ -43,6 +43,7 @@ from dataclasses import dataclass
 from typing import Tuple, Union, List, Callable
 from warnings import warn
 from pydicom.errors import InvalidDicomError
+from operator import itemgetter
 import pyximport
 pyximport.install()
 
@@ -309,7 +310,9 @@ class UltrasoundVideoIO(UltrasoundVideoBase):
                                    **kwargs)
 
         save_dir = self.output_dir / f'{filename}'
-        save_dir.mkdir(parents=True, exist_ok=True)
+        if save_dir.exists():
+            return None
+        save_dir.mkdir(parents=True)
         pad = len(str(len(self.data)))
 
         return (lambda i, image:
@@ -425,6 +428,36 @@ class USVBatchConverter:
     output_dir: Union[Path, str]
     output_formats: List[str]
 
+    def _list_expected_outputs(self, dicoms):
+
+        output_dicoms = {dicom: UltrasoundVideo(dicom) for dicom in dicoms}
+        output_filenames = dict()
+
+        for dicom_filename, usvid in output_dicoms.items():
+            for output_format in self.output_formats:
+                if output_format in VIDEO_FORMATS:
+                    output_filenames.update({
+                    f'{format_filename(usvid.name, usvid.pid, usvid.start_time)}.{output_format}' : dicom_filename})
+                else:
+                    output_filenames.update({
+                        format_filename(usvid.name, usvid.pid,
+                        usvid.start_time) : dicom_filename})
+        return output_filenames
+
+
+    def check_dir(self):
+
+        dicoms = read_DICOM_dir(self.input_dir)
+        output_filenames = self._list_expected_outputs(dicoms)
+        existing_files = set([str(file.name)
+                        for file in Path(str(self.output_dir)).iterdir()])
+
+        dicoms_to_convert = output_filenames.keys() - existing_files
+
+        return list(itemgetter(*dicoms_to_convert)(output_filenames))
+
+
+
     @staticmethod
     def create_writers(io_object: UltrasoundVideoIO,
                        output_formats: List[str], **kwargs):
@@ -451,9 +484,12 @@ class USVBatchConverter:
                                                        self.output_formats,
                                                        processing=processing,
                                                        **kwargs)
+            if not any(writers) :
+                return
             for i, frame in enumerate(ultrasound_video.data):
                 frame = ultrasound_video.process(frame, processing)
                 for writer in writers:
+                    if writer is None: continue
                     try:
                         writer.write(frame)
                     except AttributeError:
@@ -471,7 +507,7 @@ class USVBatchConverter:
         [self.convert(file, **kwargs) for file in batch]
 
     def run(self, **kwargs):
-        dicoms = read_DICOM_dir(self.input_dir)
+        dicoms = self.check_dir()
         batch_process(dicoms, self.convert,
                       n_workers=cpu_count(),
                       sep_progress=True,

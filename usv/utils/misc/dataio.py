@@ -23,6 +23,9 @@ def create_video_writer(format:str,
     if output_dir:
         Path(str(output_dir)).mkdir(parents=True, exist_ok=True)
         filename = output_dir / f'{filename}.{format}'
+        if kwargs.get('exist_ok', True) is False:
+            if filename.exists():
+                return None
 
     fourcc = cv2.VideoWriter_fourcc(*codec)
 
