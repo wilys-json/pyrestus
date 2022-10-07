@@ -39,15 +39,15 @@ def _find_files(folder):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('pattern', type=str, metavar='pattern',
-                        help='Regex patterns to look for.')
     parser.add_argument('folder', type=str, metavar='folder',
                         help='Folder containing files to unify.')
+    parser.add_argument('-t', '--pattern', type=str, metavar='pattern',
+                        nargs='+', help='Regex patterns to look for.')
     parser.add_argument('-r', '--recursive', action='store_true', default=False)
+    parser.add_argument('-p', '--replace', action='store_true', default=False)
 
     args = parser.parse_args()
 
-    find = lambda x : re.findall(args.pattern, x)
     folder = Path(args.folder)
 
     assert folder.is_dir(), f"Cannot find folder: {args.folder}."
@@ -59,10 +59,23 @@ def main():
 
     count = 0
     for file in files:
-        if file.name[0] != '.':
-            found = find(str(file))
-            if found:
-                file.rename(file.parent / find(str(file))[0])
+
+        if not args.replace:
+            assert args.pattern and (len(args.pattern) == 1)
+            find = lambda x : re.findall(args.pattern[0], x)
+            if file.name[0] != '.':
+                found = find(str(file))
+                if found:
+                    file.rename(file.parent / found[0])
+                    count += 1
+
+        else:
+            assert args.pattern and (len(args.pattern) % 2 == 0)
+            if file.name[0] != '.':
+                new_name = file.name
+                for orig, target in zip(args.pattern[::2], args.pattern[1::2]):
+                    new_name = new_name.replace(orig, target)
+                file.rename(file.parent / new_name)
                 count += 1
 
     print(f'Renamed {count} files.')
