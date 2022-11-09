@@ -43,6 +43,9 @@ def main():
     args = parser.parse_args()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
+    output_folder = Path(args.output_folder)/f'{HIDDEN_DATA[1:]}_{timestamp}'
+    output_folder.mkdir(exist_ok=True, parents=True)
+
     if args.hide: hide_files(args.output_folder)
     else: unhide_files(args.output_folder)
 
@@ -50,8 +53,6 @@ def main():
         sys.exit(0)
 
     print('Randomizing files in {}'.format(args.inputFolder))
-    output_folder = Path(args.output_folder)/f'{HIDDEN_DATA[1:]}_{timestamp}'
-    output_folder.mkdir(exist_ok=True, parents=True)
     randomize(timestamp, args.inputFolder,
              args.selection_factor, args.duplicate_factor, str(output_folder))
     hide_files(args.output_folder)
