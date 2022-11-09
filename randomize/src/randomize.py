@@ -148,12 +148,12 @@ def generate_files(timestamp, shuffled_list, extension, folder='output'):
        (file_df.reset_index()
                .progress_apply(lambda row: generate_video(row[0],
                                            row['index'],
-                                           folder), axis=1))
+                                           folder=folder), axis=1))
    else:
       (file_df.reset_index()
               .progress_apply(lambda row: generate_image(row[0],
                                           row['index'],
-                                          folder), axis=1))
+                                          folder=folder), axis=1))
 
 
 def randomize(timestamp, files_path, selection_factor=0.2,
