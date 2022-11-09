@@ -46,7 +46,7 @@ def listdir(path:str)->list:
        return glob.glob(os.path.join(path, "*"))
 
 
-def shuffle(file_list:list, split_factor:float=0.3)->list:
+def duplicate(file_list:list, split_factor:float=0.3)->list:
    """
    Shuffle the input list and repeat `split_factor` percentage of list.
    """
@@ -60,6 +60,17 @@ def shuffle(file_list:list, split_factor:float=0.3)->list:
    if split == 0: return list1
    return list1 + list2[split:]
 
+
+def shuffle(file_list:list, selection_factor:float=0.3)->list:
+   """
+   Shuffle the input list and select the `selection_factor` portion.
+   """
+   assert (0 < selection_factor <= 1), \
+    "Splitting Factor (f) can only be 0 < f <= 1."
+   new_list = deepcopy(file_list)
+   np.random.shuffle(new_list)
+   selection = int(len(new_list) * selection_factor * -1)
+   return new_list[selection:]
 
 def generate_video(video_file:str , idx:int, folder:str='output'):
    """
@@ -117,7 +128,7 @@ def generate_files(timestamp, shuffled_list, extension, folder='output'):
    file_df = pd.DataFrame(shuffled_list)
    file_df = file_df.reset_index()
 
-   file_df.to_csv(os.path.join(OUTPUT_DIR,
+   file_df.to_csv(os.path.join(folder,
                               '{}_{}.csv'.format(HIDDEN_DATA, timestamp)),
                  index=False, header=False)
 
@@ -145,7 +156,8 @@ def generate_files(timestamp, shuffled_list, extension, folder='output'):
                                           folder), axis=1))
 
 
-def randomize(timestamp, files_path, split_factor=0.3, output_folder='output'):
+def randomize(timestamp, files_path, selection_factor=0.2,
+             duplicate_factor=0.3, output_folder='output'):
 
    assert os.path.exists(files_path), "File path not found."
 
@@ -161,7 +173,8 @@ def randomize(timestamp, files_path, split_factor=0.3, output_folder='output'):
        raise ValueError('Multiple file type found. Please unify file formats.')
 
    print("Randomizing {} files".format(len(file_list)))
-   file_list = shuffle(file_list, split_factor)
+   file_list = shuffle(file_list, selection_factor)
+   file_list = duplicate(file_list, duplicate_factor)
 
    print("Randomization done.\n {} files will be generated: ".format(len(file_list)))
    generate_files(timestamp, file_list, extensions, folder=output_folder)

@@ -26,6 +26,7 @@ import argparse
 import sys
 import os
 from glob import glob
+from pathlib import Path
 from datetime import datetime
 from src import *
 
@@ -34,27 +35,26 @@ def main():
     parser.add_argument('inputFolder', type=str, nargs='?', default='')
     parser.add_argument('-hide', action='store_false', default=True)
     parser.add_argument('+hide', action='store_true', default=False)
-    parser.add_argument('--duplicate-factor', type=float,
+    parser.add_argument('-s', '--selection-factor', type=float, default=0.2)
+    parser.add_argument('-d', '--duplicate-factor', type=float,
                         metavar='Dup-Factor', default=0.3)
+    parser.add_argument('-o', '--output-folder', type=str, default=OUTPUT_DIR)
 
     args = parser.parse_args()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
-    if not os.path.exists(OUTPUT_DIR):
-        os.mkdir(OUTPUT_DIR)
-
-    if args.hide: hide_files()
-    else: unhide_files()
+    if args.hide: hide_files(args.output_folder)
+    else: unhide_files(args.output_folder)
 
     if not args.inputFolder:
         sys.exit(0)
 
     print('Randomizing files in {}'.format(args.inputFolder))
-    output_folder = os.path.join(OUTPUT_DIR,
-                                '{}_{}'.format(HIDDEN_DATA[1:], timestamp))
-
-    randomize(timestamp, args.inputFolder, args.duplicate_factor, output_folder)
-    hide_files()
+    output_folder = Path(args.output_folder)/f'{HIDDEN_DATA[1:]}_{timestamp}'
+    output_folder.mkdir(exist_ok=True, parents=True)
+    randomize(timestamp, args.inputFolder,
+             args.selection_factor, args.duplicate_factor, str(output_folder))
+    hide_files(args.output_folder)
 
 if __name__ == '__main__':
     main()

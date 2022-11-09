@@ -28,29 +28,29 @@ from glob import glob
 from .randomize import OUTPUT_DIR, HIDDEN_DATA
 
 
-def hide_files():
+def hide_files(dir=OUTPUT_DIR):
 
-    for csv in os.listdir(OUTPUT_DIR):
+    for csv in os.listdir(dir):
                 if platform == 'darwin':
                     if (csv.startswith(HIDDEN_DATA[1:])
                         and csv.endswith('.csv')):
                             filename = csv.split(os.path.sep)[-1]
-                            os.rename(os.path.join(OUTPUT_DIR, csv),
-                                      os.path.join(OUTPUT_DIR,"."+filename))
+                            os.rename(os.path.join(dir, csv),
+                                      os.path.join(dir,"."+filename))
                 elif platform == 'win32':
                     if csv.endswith('.csv'):
-                        os.popen('attrib +h ' + os.path.join(OUTPUT_DIR, csv))
+                        os.popen('attrib +h ' + os.path.join(dir, csv))
 
 
-def unhide_files():
+def unhide_files(dir=OUTPUT_DIR):
 
-    for csv in os.listdir(OUTPUT_DIR):
+    for csv in os.listdir(dir):
             if platform == 'darwin':
                     if (csv.startswith(HIDDEN_DATA) and csv.endswith('.csv')):
                             filename = csv.split(os.path.sep)[-1]
-                            os.rename(os.path.join(OUTPUT_DIR, csv),
-                                      os.path.join(OUTPUT_DIR, filename[1:]))
+                            os.rename(os.path.join(dir, csv),
+                                      os.path.join(dir, filename[1:]))
 
             elif platform == 'win32':
                     if csv.endswith('.csv'):
-                        os.popen('attrib -h ' + os.path.join(OUTPUT_DIR, csv))
+                        os.popen('attrib -h ' + os.path.join(dir, csv))
