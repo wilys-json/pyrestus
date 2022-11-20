@@ -29,9 +29,11 @@ import glob
 import cv2
 from tqdm import tqdm
 from copy import deepcopy
+from pathlib import Path
+from typing import Union, List
 import sys
-sys.path.insert(0, '../..')
-from usv.utils.misc import read_DICOM_dir
+# sys.path.insert(0, '../..')
+# from ..usv.utils.misc import read_DICOM_dir
 
 np.random.seed(1337)
 
@@ -39,6 +41,28 @@ IMAGE_FORMATS = {'png', 'jpg', 'jpeg', 'bmp'}
 VIDEO_FORMATS = {'mp4', 'mov', 'avi'}
 HIDDEN_DATA = '.randomized'
 OUTPUT_DIR = 'outputs'
+
+
+# Copy and paste from USV module
+# TO-DO: resolve package import issues
+def _read_DICOM_dir(dicom_dir:Union[Path, str], l:list, sorted=False)->List[Path]:
+
+    if not Path(str(dicom_dir)).is_dir():
+        return l
+
+    for item in Path(str(dicom_dir)).iterdir():
+
+        l += (_read_DICOM_dir(item, l, sorted) if item.is_dir() else
+            [Path(str(item))])
+
+    if sorted:
+        l.sort()
+
+    return list(set(l))
+
+def read_DICOM_dir(dicom_dir:Union[Path, str], sorted=False)->List[Path]:
+
+    return _read_DICOM_dir(dicom_dir, [], sorted)
 
 
 def listdir(path:str, recursive:bool=False)->list:
