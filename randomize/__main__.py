@@ -39,6 +39,7 @@ def main():
     parser.add_argument('-d', '--duplicate-factor', type=float,
                         metavar='Dup-Factor', default=0.3)
     parser.add_argument('-o', '--output-folder', type=str, default=OUTPUT_DIR)
+    parser.add_argument('-r', '--recursive', action='store_true', default=False)
 
     args = parser.parse_args()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -54,7 +55,8 @@ def main():
 
     print('Randomizing files in {}'.format(args.inputFolder))
     randomize(timestamp, args.inputFolder,
-             args.selection_factor, args.duplicate_factor, str(output_folder))
+             args.selection_factor, args.duplicate_factor, str(output_folder),
+             recursive=args.recursive)
     hide_files(args.output_folder)
 
 if __name__ == '__main__':

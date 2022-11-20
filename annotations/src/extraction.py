@@ -86,6 +86,22 @@ def cropping_dim(x: Union[str, float],
     return (y1, x1, y1 + bounding_box.box_size, x1 + bounding_box.box_size)
 
 
+def extract_mask_pixel(img: np.ndarray,
+                       mask: np.ndarray) -> np.ndarray:
+    """
+    Extract the pixel values from a segmentation mask.
+    """
+
+    # Sanity check: W x H dimension
+    assert img.shape[:2] == mask.shape[:2]
+
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # convert to grayscale img
+    gray_arr = np.argwhere(mask != 0)
+    mask_arr = img_gray[gray_arr]
+
+    return mask_arr
+
+
 class Color:
     """
     Color palette.
@@ -227,7 +243,13 @@ class AnnotationManager:
     def get_annotation_points(xml_file: Path,
                               xmlparams: XMLParameters,
                               normalized: bool = False,
-                              include_img_index=False):
+                              include_img_index=False,
+                              extraction_method:str='get_coordinate'):
+
+        extraction = dict(
+            get_coordinate=AnnotationManager.get_coordinate,
+            get_coordinates=AnnotationManager.get_coordinates
+        )
 
         points = []
         frame_size = get_frame_size([xml_file])
@@ -239,8 +261,8 @@ class AnnotationManager:
 
             if point_tag:
 
-                coordinate = AnnotationManager.get_coordinate(xmlparams,
-                                                              point_tag[0])
+                coordinate = extraction[extraction_method](xmlparams,
+                                                           point_tag[0])
 
                 if normalized:
                     coordinate = tuple(
@@ -251,7 +273,7 @@ class AnnotationManager:
                     img_attrib = str(xmlparams.get_image_attrib(tag))
                     coordinate = (img_attrib,) + coordinate
 
-                points += [coordinate]
+                points += [np.array(coordinate)]
 
         if include_img_index:
 
@@ -391,10 +413,8 @@ class ContourRenderer(LineRenderer):
              index: int,
              **kwargs):
 
-        contour = self._get_contour(contour_tag[0])
         color = kwargs.pop('color', Color[index])
         cv2.polylines(img, [contour], True, color=color, **kwargs)
-
         return img
 
 
@@ -405,7 +425,8 @@ class RendererFactory:
         renderers = dict(
             point=PointRenderer,
             line=LineRenderer,
-            contour=ContourRenderer
+            contour=ContourRenderer,
+            mask=SegmentationMask
         )
         return renderers[option](**kwargs)
 
@@ -483,8 +504,6 @@ class AnnotationRenderer:
         writers = self.renderer.writers
         source = ioparams.source
 
-
-
     def run(self, **kwargs):
         """
         Render Annotations in `ioparams.output_format`.
@@ -496,3 +515,17 @@ class AnnotationRenderer:
 
         else:
             pass
+
+
+class SegmentationMask(LineRenderer):
+
+    def draw(self,
+             img: np.ndarray,
+             contour_tag: List[ET.Element],
+             index: int,
+             **kwargs):
+
+        contour = self._get_contour(contour_tag[0])
+        img = np.zeros(img.shape)
+        cv2.fillPoly(img, pts=[contours], color=(255,255,255), **kwargs)
+        return img

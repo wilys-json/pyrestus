@@ -29,6 +29,9 @@ import glob
 import cv2
 from tqdm import tqdm
 from copy import deepcopy
+import sys
+sys.path.insert(0, '../..')
+from usv.utils.misc import read_DICOM_dir
 
 np.random.seed(1337)
 
@@ -38,10 +41,13 @@ HIDDEN_DATA = '.randomized'
 OUTPUT_DIR = 'outputs'
 
 
-def listdir(path:str)->list:
+def listdir(path:str, recursive:bool=False)->list:
    """
    List files in a directory.
    """
+   if recursive:
+       return read_DICOM_dir(path)
+
    if os.path.exists(path):
        return glob.glob(os.path.join(path, "*"))
 
@@ -157,11 +163,12 @@ def generate_files(timestamp, shuffled_list, extension, folder='output'):
 
 
 def randomize(timestamp, files_path, selection_factor=0.2,
-             duplicate_factor=0.3, output_folder='output'):
+             duplicate_factor=0.3, output_folder='output',
+             recursive=False):
 
    assert os.path.exists(files_path), "File path not found."
 
-   file_list = listdir(files_path)
+   file_list = listdir(files_path, recursive)
    extensions = set([(file.split('.')[-1]).lower() for file in file_list])
    invalid_formats = list(
                     extensions.difference(VIDEO_FORMATS.union(IMAGE_FORMATS))
