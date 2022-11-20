@@ -193,7 +193,7 @@ def randomize(timestamp, files_path, selection_factor=0.2,
    assert os.path.exists(files_path), "File path not found."
 
    file_list = listdir(files_path, recursive)
-   file_list = [f for f in file_list if not str(f).startswith('.')]
+   file_list = [f for f in file_list if not str(f.stem).startswith('.')]
    extensions = set([(str(file).split('.')[-1]).lower() for file in file_list])
    invalid_formats = list(
                     extensions.difference(VIDEO_FORMATS.union(IMAGE_FORMATS))
