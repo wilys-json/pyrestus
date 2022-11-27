@@ -45,16 +45,15 @@ def retrieve_template(data_dir: Union[Path, str],
                       img_frame: str,
                       x: Union[float, str],
                       y: Union[float, str],
-                      img_format:str ='.png',
+                      img_format: str = '.png',
                       **kwargs) -> np.ndarray:
-
     """
     Return an image template for SiamFC training.
     Image will be of center point (x,y).
     """
 
     img_pth = Path(str(data_dir)) / img_dir / f'{img_frame}{img_format}'
-    y1, x1, y2, x2 = cropping_dim(x,y,**kwargs)
+    y1, x1, y2, x2 = cropping_dim(x, y, **kwargs)
 
     img = cv2.imread(str(img_pth))
 
@@ -67,7 +66,6 @@ def retrieve_template(data_dir: Union[Path, str],
 def cropping_dim(x: Union[str, float],
                  y: Union[str, float],
                  bbox_size: int) -> Tuple[int]:
-
     """
     Return tuple of (left, top, right, bottom) pixel address
     w.r.t. a defined bounding box.
@@ -79,9 +77,9 @@ def cropping_dim(x: Union[str, float],
 
     bounding_box = BoundingBox(box_size=bbox_size)
     x, y = RendererBase._floats2ints((float(x), float(y)),
-                                      bounding_box.factor)
-    x1, y1 = map(lambda i : (i // bounding_box.factor) \
-                            - (bounding_box.box_size //2), (x,y))
+                                     bounding_box.factor)
+    x1, y1 = map(lambda i: (i // bounding_box.factor)
+                 - (bounding_box.box_size // 2), (x, y))
 
     return (y1, x1, y1 + bounding_box.box_size, x1 + bounding_box.box_size)
 
@@ -96,8 +94,10 @@ def extract_mask_pixel(img: np.ndarray,
     assert len(img.shape) == len(mask.shape) == 3
     assert img.shape[:2] == mask.shape[:2]
 
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # convert to grayscale img
-    mask_binary = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY) # convert mask to grayscale
+    # convert to grayscale img
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # convert mask to grayscale
+    mask_binary = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
     gray_arr = np.where(mask_binary != 0)
     pixel_arr = img_gray[gray_arr]
     return pixel_arr
@@ -127,16 +127,16 @@ class BoundingBox:
     shift = 2
     box_size = 127
 
-    def __init__(self, radius:int=2,
-                       thickness:int=1,
-                       shift:int=2,
-                       box_size:int=127):
+    def __init__(self, radius: int = 2,
+                 thickness: int = 1,
+                 shift: int = 2,
+                 box_size: int = 127):
 
-        self.radius=radius
-        self.thickness=thickness
-        self.shift=shift
-        self.box_size=box_size
-        self.factor=1 << shift
+        self.radius = radius
+        self.thickness = thickness
+        self.shift = shift
+        self.box_size = box_size
+        self.factor = 1 << shift
 
 
 @dataclass
@@ -245,7 +245,7 @@ class AnnotationManager:
                               xmlparams: XMLParameters,
                               normalized: bool = False,
                               include_img_index=False,
-                              extraction_method:str='get_coordinate'):
+                              extraction_method: str = 'get_coordinate'):
 
         extraction = dict(
             get_coordinate=AnnotationManager.get_coordinate,
@@ -290,7 +290,6 @@ class AnnotationManager:
                      start: Union[int, None] = None,
                      end: Union[int, None] = None,
                      step: Union[int, None] = None):
-
         """
         Retrieve image file sequence. Applicable for inter-rater reliability.
         """
@@ -431,13 +430,15 @@ class RendererFactory:
         )
         return renderers[option](**kwargs)
 
+
 class VideoExtractor:
 
     @classmethod
     def extract(cls, video_dir, target_dir, video_format='.avi'):
         file_paths = read_DICOM_dir(video_dir)
-        file_paths = {path.name : path for path in file_paths
-                                        if path.suffix == video_format}
+        file_paths = {path.name: path for path in file_paths
+                      if path.suffix == video_format}
+
 
 class AnnotationRenderer:
 
@@ -459,7 +460,7 @@ class AnnotationRenderer:
         # Create empty image list
         image_files = [str(Path(ioparams.image_file_dir) /
                            xmlparams.get_image_attrib(image))
-                           for image in sequences[0]]
+                       for image in sequences[0]]
 
         # Iterate over images
         for i, image_file in enumerate(tqdm(image_files)):
@@ -469,7 +470,7 @@ class AnnotationRenderer:
 
                 assert image_file == (
                     str(Path(ioparams.image_file_dir) /
-                    xmlparams.get_image_attrib(sequence[i])))
+                        xmlparams.get_image_attrib(sequence[i])))
 
                 if j == 0:
                     assert Path(image_file).exists()
@@ -522,12 +523,31 @@ class SegmentationMask(LineRenderer):
 
     def draw(self,
              img: np.ndarray,
-             contour_tag: List[ET.Element],
-             index: int,
+             annotation: str,
              **kwargs):
-
-        contour = self._get_contour(contour_tag[0])
+        idx = kwargs.pop('idx', None)
+        contours = self.get_annotation_points(annotation,
+                        self.xmlparams, extraction_method='get_coordinates')
+        if idx:
+            assert isinstance(idx, int)
+            contours = contours[idx]
         img = np.zeros(img.shape)
         cv2.fillPoly(img, pts=[contours.astype(np.int32, copy=False)],
-                     color=(255,255,255), **kwargs)
-        return img
+                     color=(255, 255, 255), **kwargs)
+        return img.astype(np.uint8)
+
+    def overlay(self,
+                img: np.ndarray,
+                annotation: str,
+                alpha: float=.5,
+                **kwargs):
+
+        mask = self.draw(img, annotation, **kwargs)
+        return cv2.addWeighted(img, alpha, mask, 1 - alpha, 0)
+
+    def filter(self,
+               img: np.ndarray,
+               annotation: str,
+               **kwargs):
+
+        return extract_mask_pixel(img, self.draw(img, annotation, **kwargs))
