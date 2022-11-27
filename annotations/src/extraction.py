@@ -93,13 +93,14 @@ def extract_mask_pixel(img: np.ndarray,
     """
 
     # Sanity check: W x H dimension
+    assert len(img.shape) == len(mask.shape) == 3
     assert img.shape[:2] == mask.shape[:2]
 
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # convert to grayscale img
-    gray_arr = np.argwhere(mask != 0)
-    mask_arr = img_gray[gray_arr]
-
-    return mask_arr
+    mask_binary = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY) # convert mask to grayscale
+    gray_arr = np.where(mask_binary != 0)
+    pixel_arr = img_gray[gray_arr]
+    return pixel_arr
 
 
 class Color:
@@ -527,5 +528,6 @@ class SegmentationMask(LineRenderer):
 
         contour = self._get_contour(contour_tag[0])
         img = np.zeros(img.shape)
-        cv2.fillPoly(img, pts=[contours], color=(255,255,255), **kwargs)
+        cv2.fillPoly(img, pts=[contours.astype(np.int32, copy=False)],
+                     color=(255,255,255), **kwargs)
         return img
