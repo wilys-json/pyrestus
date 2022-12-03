@@ -84,7 +84,9 @@ def generate_mask(df: pd.DataFrame, args: argparse.Namespace, **kwargs):
                   show_mask=args.show_mask,
                   lines_only=args.lines_only,
                   timestamp=kwargs.get('timestamp'),
-                  output_dir=kwargs.get('output_dir'))
+                  output_dir=kwargs.get('output_dir'),
+                  color=args.color,
+                  cropping=args.cropping)
     """
     # Iterative processing
     df.progress_applymap(
@@ -236,6 +238,9 @@ def main():
     parser.add_argument('--raw-points', action='store_const', dest='method',
                         const='raw_points', default='thin')
     parser.add_argument('-o', '--output', type=str, default=OUTPUT_DIR)
+    parser.add_argument('--no-cropping', action='store_false', dest='cropping',
+                        default=True)
+    parser.add_argument('-c', '--color', type=str, default=None)
 
 
     args = parser.parse_args()

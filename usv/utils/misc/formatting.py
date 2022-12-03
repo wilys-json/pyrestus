@@ -1,3 +1,5 @@
+
+from pydicom import dcmread
 from datetime import datetime
 
 def format_filename(name='', pid='', start_time='', **kwargs)->str:
@@ -15,3 +17,10 @@ def format_filename(name='', pid='', start_time='', **kwargs)->str:
                 else timestamp)
 
     return filename
+
+
+def format_sequence_info(dicom_file):
+    sequence_info = dict()
+    for item in dcmread(dicom_file).SequenceOfUltrasoundRegions[0].iterall():
+        sequence_info.update({item.name:item.value})
+    return sequence_info

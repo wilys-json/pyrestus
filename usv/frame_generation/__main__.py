@@ -154,14 +154,16 @@ Worker 5: 100%|█████████████████████�
     parser.add_argument('-s', '--output-format', dest='output_formats',
                         required=False, nargs='+', type=str,
                         default=['avi', 'png'])
-    parser.add_argument('-m', '--use-meta-cache', action='store_true', dest='cache',
+    parser.add_argument('--use-meta-cache', action='store_true', dest='cache',
                         default=False)
-    parser.add_argument('--generate-meta', action='store_true', dest='meta',
+    parser.add_argument('--generate-file-meta', action='store_true', dest='generate_meta',
+                        default=False)
+    parser.add_argument('-m', '--generate-roi-meta', action='store_true', dest='roi_metadata',
                         default=False)
 
     args = parser.parse_args()
 
-    if args.meta:
+    if args.generate_meta:
         with open('dircache', 'w') as meta_file:
             for file in Path(str(args.output_dir)).iterdir():
                 meta_file.write(f'{file.name}\n')
@@ -187,7 +189,8 @@ Worker 5: 100%|█████████████████████�
                                     output_dir= output_dir,
                                     output_formats=args.output_formats,
                                     cache=cache)
-        converter.run()
+                                    
+        converter.run(roi_metadata=args.roi_metadata)
 
     else:
 

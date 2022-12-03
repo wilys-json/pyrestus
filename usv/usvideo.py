@@ -24,7 +24,8 @@
 
 from tqdm_batch import batch_process
 from joblib import cpu_count
-from .utils import format_filename, create_video_writer, read_DICOM_dir
+from .utils import (format_filename, create_video_writer,
+                    read_DICOM_dir, format_sequence_info)
 import pydicom
 import numpy as np
 import pandas as pd
@@ -33,6 +34,7 @@ import datetime
 import math
 import cv2
 import warnings
+import yaml
 from PIL import Image
 from pathlib import Path
 from datetime import datetime
@@ -505,7 +507,7 @@ class USVBatchConverter:
 
         dicoms = read_DICOM_dir(self.input_dir)
         output_filenames = self._list_expected_outputs(dicoms)
-        
+
         if self.cache:
             try:
                 with open(self.cache) as file:
@@ -558,6 +560,18 @@ please use `frame_generation  -o [output_dir] -m` to generate a cach file first.
                                                        self.output_formats,
                                                        processing=processing,
                                                        **kwargs)
+            if kwargs.get('roi_metadata'):
+                if set(self.output_formats).intersection(IMAGE_FORMATS):
+                    filename = format_filename(ultrasound_video.name,
+                                               ultrasound_video.pid,
+                                               ultrasound_video.start_time)
+                    output_dir = self.output_dir / filename
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                    output_pth = output_dir / 'roi_metadata.yml'
+                    roi_metadata = format_sequence_info(input_file)
+                    with open(str(output_pth), 'w') as output_file:
+                        yaml.dump(roi_metadata, output_file)
+
             if not any(writers) :
                 return
             for i, frame in enumerate(ultrasound_video.data):

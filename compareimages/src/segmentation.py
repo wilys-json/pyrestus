@@ -31,12 +31,14 @@ from typing import List, Tuple, Union
 
 
 HSV_FILTERS = {
-    "blue" : ((110,50,50),
-              (130,255,255)),
-    "green" : ((30, 0, 0),
-               (80, 255, 255)),
-    "yellow" : ((22, 93, 0),
-                (45, 255, 255))
+    "b" : ((110,50,50),
+              (130,255,255)),  # blue
+    "g" : ((30, 0, 0),
+               (80, 255, 255)),  # green
+    "y" : ((22, 93, 0),
+                (45, 255, 255)),  # yellow
+    "r" : ((0, 100, 20),
+                (10, 255, 255)) # red
 }
 
 CROPPING_RATIOS = (.256, .095, .953, .945)
@@ -157,6 +159,10 @@ def get_segmentation_mask(img_path: Union[str, Path],
     show_binary = kwargs.get('show_binary')
     lines_only = kwargs.get('lines_only')
     show_mask = kwargs.get('show_mask')
+    color = kwargs.get('color')
+
+    if color:
+        hsv_filters = [HSV_FILTERS[color[0].lower()]]
 
     img = cv2.imread(str(img_path))
 
