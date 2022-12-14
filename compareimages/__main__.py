@@ -54,8 +54,7 @@ def make_dataframe(args: argparse.Namespace) -> pd.DataFrame:
         assert match_file_type == '.csv', \
             f"""Must provide .csv file for repeated image Dice.\n
                 {match_file_type} file was provided."""
-
-        df = pd.read_csv(args.repeated_image, header=args.no_csv_header)
+        df = pd.read_csv(args.repeated_image, header=args.csv_header)
         df = df.applymap(lambda x: (input_dir / x))
         indices = []
         for row in df.itertuples():
@@ -86,7 +85,8 @@ def generate_mask(df: pd.DataFrame, args: argparse.Namespace, **kwargs):
                   timestamp=kwargs.get('timestamp'),
                   output_dir=kwargs.get('output_dir'),
                   color=args.color,
-                  cropping=args.cropping)
+                  cropping=args.cropping,
+                  correct=args.correction)
     """
     # Iterative processing
     df.progress_applymap(
@@ -208,8 +208,7 @@ def main():
                         dest='function', const='calculate_dice_score',
                         default='')
     parser.add_argument('--repeated-image', type=str, default='')
-    parser.add_argument('--no-csv-header', action='version', version=None,
-                        default=0)
+    parser.add_argument('--csv-header', type=int, default=0)
     parser.add_argument('--debug', action='store_true', default=False)
     parser.add_argument('--calculate-hausdorff-distance',  action='store_const',
                         dest='function', const='calculate_hausdorff_distance',
@@ -241,6 +240,8 @@ def main():
     parser.add_argument('--no-cropping', action='store_false', dest='cropping',
                         default=True)
     parser.add_argument('-c', '--color', type=str, default=None)
+    parser.add_argument('--no-correction', action='store_false', dest='correction',
+                        default=True)
 
 
     args = parser.parse_args()

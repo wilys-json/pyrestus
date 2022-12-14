@@ -31,14 +31,14 @@ from typing import List, Tuple, Union
 
 
 HSV_FILTERS = {
-    "b" : ((110,50,50),
-              (130,255,255)),  # blue
+    "b" : ((90,180,170),
+              (120,255,255)),  # blue
     "g" : ((30, 0, 0),
                (80, 255, 255)),  # green
     "y" : ((22, 93, 0),
                 (45, 255, 255)),  # yellow
-    "r" : ((0, 100, 20),
-                (10, 255, 255)) # red
+    "r" : ((160, 85, 180),
+                (180, 255, 255)) # red
 }
 
 CROPPING_RATIOS = (.256, .095, .953, .945)
@@ -49,7 +49,7 @@ MORPHOLOGICAL_ITERATIONS = 10
 
 GAUSSIAN_SMOOTHING = (7,7)
 
-BINARY_THRESHOLD = 127
+BINARY_THRESHOLD = 1
 
 OUTPUT_DIR = 'segmented'
 
@@ -92,20 +92,21 @@ def filter_image(img:np.ndarray,
     for hsv_filter in hsv_filters:
         hsv_min, hsv_max = hsv_filter
         mask = cv2.inRange(hsv, hsv_min, hsv_max)
-        imask = mask > 0
-        color[imask] = img[imask]
+        # imask = mask > 0
+        # color[imask] = img[imask]
+        color = cv2.bitwise_and(img, img, mask=mask)
 
     if (color == blackimg).all():
         print(f"Warning: No segmentation detected in {id}.")
 
     return color
 
-
 def extract_segment(img:np.ndarray,
                    correction:Tuple[int]=MORPHOLOGICAL_CORRECTION,
                    iterations:int=MORPHOLOGICAL_ITERATIONS,
                    smoothing:Tuple[int]=GAUSSIAN_SMOOTHING,
-                   binary_threshold:int=BINARY_THRESHOLD)->np.ndarray:
+                   binary_threshold:int=BINARY_THRESHOLD,
+                   required_corrections:bool=True)->np.ndarray:
 
     """
     Extract filtered segments and convert to an binary image.
@@ -115,9 +116,11 @@ def extract_segment(img:np.ndarray,
     """
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    kernel = np.ones(correction, 'uint8')
-    dilated = cv2.dilate(gray, kernel, iterations=iterations)
-    corrected = cv2.erode(dilated, kernel, iterations=iterations)
+    corrected = gray.copy()
+    if required_corrections:
+        kernel = np.ones(correction, 'uint8')
+        dilated = cv2.dilate(gray, kernel, iterations=iterations)
+        corrected = cv2.erode(dilated, kernel, iterations=iterations)
     corrected = cv2.GaussianBlur(corrected, smoothing, 0)
     ret, thresh = cv2.threshold(corrected, binary_threshold,
                                 255, cv2.THRESH_BINARY)
@@ -160,6 +163,7 @@ def get_segmentation_mask(img_path: Union[str, Path],
     lines_only = kwargs.get('lines_only')
     show_mask = kwargs.get('show_mask')
     color = kwargs.get('color')
+    correction = kwargs.get('correction')
 
     if color:
         hsv_filters = [HSV_FILTERS[color[0].lower()]]
@@ -170,13 +174,14 @@ def get_segmentation_mask(img_path: Union[str, Path],
         img = crop_image(img=img, cropping=CROPPING_RATIOS)
 
     color = filter_image(img=img, id=img_path, hsv_filters=hsv_filters)
-
+    thresh = color
 
     thresh = extract_segment(img=color,
                             correction=correction,
                             iterations=morph_iter,
                             smoothing=smoothing,
-                            binary_threshold=binary_threshold)
+                            binary_threshold=binary_threshold,
+                            required_corrections=correction)
 
     if show_original:
         Image.fromarray(img).show()

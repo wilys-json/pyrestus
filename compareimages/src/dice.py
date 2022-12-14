@@ -59,13 +59,16 @@ def dice_coefficient(img1: np.ndarray, img2: np.ndarray, **kwargs) -> float:
 
 
     if shape_only:
-        img1 = _get_shape_set(img1)
-        img2 = _get_shape_set(img2)
+        img1 = _get_shape_set(img1, ignore_error)
+        img2 = _get_shape_set(img2, ignore_error)
 
 
     intersection, sum_of_length = (len(img1 & img2), len(img1) + len(img2) if shape_only
                             else (((img1.ravel() == img2.ravel()) * 1).sum(),
                              (img1.size + img2.size)))
+
+    if sum_of_length == 0:
+        return 0.0
 
     # Dice Cofficient: 2 * (A n B) / |A| + |B|
     return (2 * intersection) / sum_of_length
@@ -81,14 +84,14 @@ def _get_shape1d(img: np.ndarray) -> np.ndarray:
 
     return img.view([('',img_dtype)]*img.shape[1])
 
-def _get_shape_set(img: np.ndarray) -> set:
+def _get_shape_set(img: np.ndarray, ignore_error=False) -> set:
 
     """
     Return a set of pixel address of a shape defined by a binary `img`.
     """
-
-    assert (np.unique(img) == np.array([0, 255])).all(), \
-        f"{_get_shape_set.__name__} only takes a binary image."
+    if not ignore_error:
+        assert (np.unique(img) == np.array([0, 255])).all(), \
+            f"{_get_shape_set.__name__} only takes a binary image."
     img = np.argwhere(img == 255)
 
     return set([tuple(pixel_address) for pixel_address in img])
