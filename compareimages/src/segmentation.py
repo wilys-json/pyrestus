@@ -38,14 +38,19 @@ HSV_FILTERS = {
     "y" : ((22, 93, 0),
                 (45, 255, 255)),  # yellow
     "r" : ((160, 85, 180),
-                (180, 255, 255)) # red
+                (180, 255, 255)), # red
+    "w" : ((0, 0, 255),
+                (180, 50, 255)),   # white
+    "o" : ((14, 136, 116),
+                (33, 255, 255))  #  orange
 }
 
+# CROPPING_RATIOS = (.256, .095, .953, .945)
 CROPPING_RATIOS = (.256, .095, .953, .945)
 
 MORPHOLOGICAL_CORRECTION = (2,2)
 
-MORPHOLOGICAL_ITERATIONS = 10
+MORPHOLOGICAL_ITERATIONS = (1,4)
 
 GAUSSIAN_SMOOTHING = (7,7)
 
@@ -118,9 +123,10 @@ def extract_segment(img:np.ndarray,
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     corrected = gray.copy()
     if required_corrections:
+        erode_iterations, dilated_iterations = iterations
         kernel = np.ones(correction, 'uint8')
-        dilated = cv2.dilate(gray, kernel, iterations=iterations)
-        corrected = cv2.erode(dilated, kernel, iterations=iterations)
+        dilated = cv2.dilate(gray, kernel, iterations=dilated_iterations)
+        corrected = cv2.erode(dilated, kernel, iterations=erode_iterations)
     corrected = cv2.GaussianBlur(corrected, smoothing, 0)
     ret, thresh = cv2.threshold(corrected, binary_threshold,
                                 255, cv2.THRESH_BINARY)
