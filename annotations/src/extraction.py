@@ -496,7 +496,7 @@ class AnnotationRenderer:
             except AttributeError:
                 pass
 
-    def _avi_integrated_rendering(self, **kargs):
+    def _avi_integrated_rendering(self, **kwargs):
 
         ioparams = self.renderer.ioparams
         xmlparams = self.renderer.xmlparams
@@ -505,6 +505,8 @@ class AnnotationRenderer:
         step = self.renderer.step
         writers = self.renderer.writers
         source = ioparams.source
+
+        # TODO: avi rendering
 
     def run(self, **kwargs):
         """

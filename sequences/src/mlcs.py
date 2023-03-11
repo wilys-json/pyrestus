@@ -261,3 +261,7 @@ def longest_common_subsequence(s1: str, s2: str,
         return ''.join(common_subsequence[::-1]), lcs / (max(len(s1) - 1, len(s2) - 1))
 
     return ''.join(common_subsequence[::-1]), lcs
+
+
+def is_lcs(main_string, substring):
+    return substring in longest_common_subsequence(main_string, substring)[0] 
