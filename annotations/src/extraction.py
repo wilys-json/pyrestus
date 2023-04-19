@@ -193,7 +193,7 @@ class XMLParameters:
     """
     structure_tag: str = 'track'
     structure_attrib: str = 'label'
-    target_structure: str = 'HB'
+    target_structure: str = ''
     image_tag: str = 'image'
     image_attrib: str = 'name'
     annotation_tag: str = 'points'
@@ -258,13 +258,16 @@ class AnnotationManager:
         for tag in get_tag(xml_file, xmlparams.image_tag):
 
             # Find points
-            point_tag = tag.findall(xmlparams.annotation_tag)
+            point_tags = tag.findall(xmlparams.annotation_tag)
 
-            if point_tag:
+            if xmlparams.target_structure:
+                point_tags = tag.findall(f"./{xmlparams.annotation_tag}/[@{xmlparams.structure_attrib}='{xmlparams.target_structure}']")
 
-                coordinate = extraction[extraction_method](xmlparams,
-                                                           point_tag[0])
-
+            if point_tags:
+                coordinate = []
+                for point_tag in point_tags:
+                    coordinate += extraction[extraction_method](xmlparams,
+                                                           point_tag)
                 if normalized:
                     coordinate = tuple(
                         map(lambda x, y: (x / y), coordinate, frame_size))
