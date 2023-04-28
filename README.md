@@ -1,4 +1,4 @@
-# Pyrestus: Python Research Tools for Ultrasound Imaging
+# Pyrestus: Python Research Tools for Ultrasonography in Swallowing
 
 This is a research tool package being developed for studying Ultrasound Imaging.
 The package offers the following functionalities:
