@@ -284,7 +284,6 @@ class AnnotationManager:
             output_df = pd.DataFrame(
                 points, columns=['image_path', 'x', 'y']).set_index('image_path')
             return output_df
-
         return np.array(points)
 
     @staticmethod
@@ -342,6 +341,7 @@ class RendererBase:
     start: Union[int, None] = None
     end: Union[int, None] = None
     step: Union[int, None] = None
+    pixel_address: np.ndarray = None
 
     def __post_init__(self):
         if self.ioparams.output_writers:
@@ -533,12 +533,14 @@ class SegmentationMask(LineRenderer):
         idx = kwargs.pop('idx', None)
         contours = self.get_annotation_points(annotation,
                         self.xmlparams, extraction_method='get_coordinates')
-        if idx:
+        if idx is not None:
             assert isinstance(idx, int)
             contours = contours[idx]
+            self.pixel_address = contours
         img = np.zeros(img.shape)
+        color = kwargs.pop('color', (255,255,255))
         cv2.fillPoly(img, pts=[contours.astype(np.int32, copy=False)],
-                     color=(255, 255, 255), **kwargs)
+                     color=color, **kwargs)
         return img.astype(np.uint8)
 
     def overlay(self,
@@ -548,11 +550,15 @@ class SegmentationMask(LineRenderer):
                 **kwargs):
 
         mask = self.draw(img, annotation, **kwargs)
+        if mask is None:
+            return
         return cv2.addWeighted(img, alpha, mask, 1 - alpha, 0)
 
     def filter(self,
                img: np.ndarray,
                annotation: str,
                **kwargs):
-
-        return extract_mask_pixel(img, self.draw(img, annotation, **kwargs))
+        mask = self.draw(img, annotation, **kwargs)
+        if mask is None:
+            return
+        return extract_mask_pixel(img, mask)
