@@ -480,7 +480,10 @@ class AnnotationRenderer:
                     img = cv2.imread(image_file).astype(np.float32)
 
                 # Look for points in i-th element in j-th sequence
-                annotations = sequence[i].findall(xmlparams.annotation_tag)
+                if xmlparams.target_structure:
+                    annotations = sequence[i].findall(f"./{xmlparams.annotation_tag}/[@{xmlparams.structure_attrib}='{xmlparams.target_structure}']")
+                else:
+                    annotations = sequence[i].findall(xmlparams.annotation_tag)
 
                 if annotations:
                     img = self.renderer.draw(img, annotations, j, **kwargs)
@@ -526,17 +529,36 @@ class AnnotationRenderer:
 
 class SegmentationMask(LineRenderer):
 
-    def draw(self,
+    def draw_from_file(self,
              img: np.ndarray,
              annotation: str,
+             index: int,
              **kwargs):
-        idx = kwargs.pop('idx', None)
+        # idx = kwargs.pop('index', None)
         contours = self.get_annotation_points(annotation,
                         self.xmlparams, extraction_method='get_coordinates')
-        if idx is not None:
-            assert isinstance(idx, int)
-            contours = contours[idx]
+        if index is not None:
+            assert isinstance(index, int)
+            contours = contours[index]
             self.pixel_address = contours
+        img = np.zeros(img.shape)
+        color = kwargs.pop('color', (255,255,255))
+        cv2.fillPoly(img, pts=[contours.astype(np.int32, copy=False)],
+                     color=color, **kwargs)
+        return img.astype(np.uint8)
+
+    def draw(self,
+             img: np.ndarray,
+             annotation: List[ET.Element],
+             index: int,
+             **kwargs):
+        # idx = kwargs.pop('index', None)
+        contours = self._get_contour(annotation[0])
+        # print(contours)
+        # if index is not None:
+        #     assert isinstance(index, int)
+        #     contours = contours[index]
+        #     self.pixel_address = contours
         img = np.zeros(img.shape)
         color = kwargs.pop('color', (255,255,255))
         cv2.fillPoly(img, pts=[contours.astype(np.int32, copy=False)],

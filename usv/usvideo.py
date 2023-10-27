@@ -25,7 +25,8 @@
 from tqdm_batch import batch_process
 from joblib import cpu_count
 from .utils import (format_filename, create_video_writer,
-                    read_DICOM_dir, format_sequence_info)
+                    read_DICOM_dir, format_sequence_info,
+                    clahe)
 import pydicom
 import numpy as np
 import pandas as pd
@@ -550,7 +551,7 @@ please use `frame_generation  -o [output_dir] -m` to generate a cach file first.
         """
         Converts `input_file` to desired `self.output_formats`.
         """
-
+        use_clahe = kwargs.get('clahe', False)
         ultrasound_video = UltrasoundVideo(input_file,
                                            output_dir=self.output_dir,
                                            **kwargs)
@@ -576,6 +577,8 @@ please use `frame_generation  -o [output_dir] -m` to generate a cach file first.
                 return
             for i, frame in enumerate(ultrasound_video.data):
                 frame = ultrasound_video.process(frame, processing)
+                if use_clahe:
+                    frame = clahe(frame)
                 for writer in writers:
                     if writer is None: continue
                     try:

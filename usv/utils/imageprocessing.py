@@ -8,7 +8,8 @@ np.random.seed(0)
 
 __all__ = [
     'detect_lines',
-    'find_Xbounds'
+    'find_Xbounds',
+    'clahe'
 ]
 
 THETA = {
@@ -21,6 +22,11 @@ LINES_FILTER = {
     'convex' : lambda x : x[np.any(x!=0, axis=1)]
 }
 
+def clahe(img, clipLimit=2, tileGridSize=(7,7)):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    clahe = cv2.createCLAHE(clipLimit=clipLimit, tileGridSize=tileGridSize)
+    img = clahe.apply(img)
+    return img
 
 def detect_lines(image:np.ndarray,
                  kernel:Tuple[int],

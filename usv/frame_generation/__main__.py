@@ -9,7 +9,7 @@ from joblib import cpu_count
 from typing import Tuple
 import sys
 sys.path.insert(0, '..')
-from usv import read_DICOM_dir, USVBatchConverter
+from usv import read_DICOM_dir, USVBatchConverter, clahe
 
 
 class _Config:
@@ -42,6 +42,7 @@ def getFrames(file: Path,
     """
     generate PNG frames from `file` to `output_dir`
     """
+    use_clahe = kwargs.get('clahe', False)
     cap = cv2.VideoCapture(str(file))
     output_dir = output_dir / \
         Path(*file.parts[-(keep_parents + 1):-1]) / file.stem
@@ -62,6 +63,8 @@ def getFrames(file: Path,
                 frame[y1:y2, x1:x2] = cropped
             else:
                 frame = cropped
+            if use_clahe:
+                frame = clahe(frame)
             cv2.imwrite(output_file, frame)
             i += 1
         cap.release()
@@ -76,7 +79,7 @@ def getVideos(file: Path,
     """
     generate cropped video from `file` to `output_dir`
     """
-
+    use_clahe = kwargs.get('clahe', False)
     video_format = kwargs.get('video_format', 'avi')
     codec = kwargs.get('codec', 'MJPG')
     fps = kwargs.get('fps', 15)
@@ -100,6 +103,8 @@ def getVideos(file: Path,
             cropped = frame[y1:y2, x1:x2, :]
             if frame_size != cropped.shape[::-1]:
                 cropped = cv2.resize(cropped, frame_size)
+            if use_clahe:
+                cropped = clahe(cropped)
             writer.write(cropped)
         cap.release()
         cv2.destroyAllWindows()
@@ -160,6 +165,8 @@ Worker 5: 100%|█████████████████████�
                         default=False)
     parser.add_argument('-m', '--generate-roi-meta', action='store_true', dest='roi_metadata',
                         default=False)
+    parser.add_argument('--clahe', action='store_true', dest='clahe',
+                        default=False)
 
     args = parser.parse_args()
 
@@ -189,8 +196,8 @@ Worker 5: 100%|█████████████████████�
                                     output_dir= output_dir,
                                     output_formats=args.output_formats,
                                     cache=cache)
-                                    
-        converter.run(roi_metadata=args.roi_metadata)
+
+        converter.run(roi_metadata=args.roi_metadata, clahe=args.clahe)
 
     else:
 
@@ -206,7 +213,8 @@ Worker 5: 100%|█████████████████████�
                       n_workers=cpu_count(),
                       sep_progress=True,
                       output_dir=output_dir,
-                      **config.items)
+                      **config.items,
+                      clahe=args.clahe)
 
 
 if __name__ == '__main__':
