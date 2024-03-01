@@ -51,7 +51,7 @@ python compute ${INPUT_FILE} -m ${MEASURE}
 ```
 
 sample:
-![demo]("demo/demo.png")
+![demo](demo/demo.png)
 
 
 
