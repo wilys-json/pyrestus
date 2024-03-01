@@ -51,9 +51,7 @@ python compute ${INPUT_FILE} -m ${MEASURE}
 ```
 
 sample:
-<p align="center">
-  <img src="demo/demo.png" width="480">
-</p>
+![demo]("demo/demo.png")
 
 
 
