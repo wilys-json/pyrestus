@@ -69,12 +69,12 @@ def compute_metric(csv_file, measure, sep):
 
     assert len(data) > 0, "empty data."
 
-    if measure in ['dice', 'jaccard', 'overlap']:
+    if measure in ['dice', 'jaccard', 'overlap', 'permute']:
         assert data.shape[1] == 2, \
             f"`{measure}` requires two columns of data, got {data.shape[1]} column(s)."
     
     
-    if measure in ['mlcs', 'permute']:
+    if measure == 'mlcs':
 
         assert data.shape[1] == 1, \
         f"`{measure}` requires only one column of data, got {data.shape[1]} column(s)."
