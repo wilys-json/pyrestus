@@ -14,7 +14,7 @@ git clone https://github.com/wilys-json/pyrestus
 
 #### 2. Setup the environment
 
-*Note: the commands below will install packages in the base environment. For virtual environments, please use `virtualenv` or `conda`
+*Note: the commands below will install packages in the base environment. For virtual environments, please use `virtualenv` or `conda`*
 
 ```
 cd pyrestus
@@ -30,7 +30,7 @@ cd sequences
 
 #### 4. Execute the `compute` program
 
-*Note: the default measurement is MLCS, you can also choose from:
+*Note: the default measurement is MLCS, you can also choose from:*
 
 (1) `dice` : Dice Score Coefficient - function under testing
 
