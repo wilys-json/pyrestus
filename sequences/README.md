@@ -54,4 +54,22 @@ sample:
 ![demo](demo/demo.png)
 
 
+#### 5.  File format preparations
+
+To use the command line program, sequence files should be prepared with respect to the target metric to be used.
+
+##### *MLCS*
+
+To compute the Multiple Longest Common Subsequences (MLCSs), the file should follow the format below:
+
+```
+event1-event2-event3
+event2-event1-event3
+event3-event2-event1
+```
+
+each event / representing symbol should be separated by the `-` sign, and a new sequence should be in a new line.
+Accepted file formats are .csv and .txt.
+
+
 
