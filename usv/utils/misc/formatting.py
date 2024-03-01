@@ -12,7 +12,7 @@ def format_filename(name='', pid='', start_time='', **kwargs)->str:
                else "".join("_".join(start_time.split(" ")).split(":")))
 
     timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
-    filename = (f'{name}{pid}{start_time}{remarks}'
+    filename = (f'{name}-{pid}-{start_time}{remarks}'
                 if all(elements)
                 else timestamp)
 

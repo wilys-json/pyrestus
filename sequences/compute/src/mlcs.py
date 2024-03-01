@@ -208,7 +208,9 @@ def mlcs_leveled_DAG(sequence, characters, findall=False) -> Set[str]:
     while {end}.difference(leveled_DAG):
         leveled_DAG = remove_outdated(leveled_DAG, findall)
 
-    return list(leveled_DAG)[0].partial_lcs
+    output = list(leveled_DAG)[0].partial_lcs
+    max_len = max([len(s) for s in output])
+    return [s for s in output if len(s) == max_len]
 
 
 # DP implementation of LCS

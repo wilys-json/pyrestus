@@ -510,7 +510,7 @@ class AnnotationRenderer:
         end = self.renderer.end
         step = self.renderer.step
         writers = self.renderer.writers
-        source = ioparams.source
+        source = xmlparams.source
 
         # TODO: avi rendering
 
@@ -532,11 +532,12 @@ class SegmentationMask(LineRenderer):
     def draw_from_file(self,
              img: np.ndarray,
              annotation: str,
-             index: int,
+             index: int = None,
              **kwargs):
         # idx = kwargs.pop('index', None)
         contours = self.get_annotation_points(annotation,
                         self.xmlparams, extraction_method='get_coordinates')
+        print(contours)
         if index is not None:
             assert isinstance(index, int)
             contours = contours[index]
@@ -550,7 +551,7 @@ class SegmentationMask(LineRenderer):
     def draw(self,
              img: np.ndarray,
              annotation: List[ET.Element],
-             index: int,
+             # index: int,
              **kwargs):
         # idx = kwargs.pop('index', None)
         contours = self._get_contour(annotation[0])
@@ -571,7 +572,7 @@ class SegmentationMask(LineRenderer):
                 alpha: float=.5,
                 **kwargs):
 
-        mask = self.draw(img, annotation, **kwargs)
+        mask = self.draw_from_file(img, annotation, **kwargs)
         if mask is None:
             return
         return cv2.addWeighted(img, alpha, mask, 1 - alpha, 0)
@@ -580,7 +581,7 @@ class SegmentationMask(LineRenderer):
                img: np.ndarray,
                annotation: str,
                **kwargs):
-        mask = self.draw(img, annotation, **kwargs)
+        mask = self.draw_from_file(img, annotation, **kwargs)
         if mask is None:
             return
         return extract_mask_pixel(img, mask)
