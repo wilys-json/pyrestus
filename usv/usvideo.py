@@ -341,7 +341,7 @@ class UltrasoundVideoIO(UltrasoundVideoBase):
                                    pid=self.pid,
                                    start_time=self.start_time,
                                    output_dir=self.output_dir,
-                                   codec=self.codec,
+                                   codec=kwargs.get('codec', self.codec),
                                    **kwargs)
 
     def ImageWriter(self, image_format: str = 'png', **kwargs) -> Callable:
