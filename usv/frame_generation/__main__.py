@@ -197,7 +197,7 @@ Worker 5: 100%|█████████████████████�
                                     output_formats=args.output_formats,
                                     cache=cache)
 
-        converter.run(roi_metadata=args.roi_metadata, clahe=args.clahe)
+        converter.run(roi_metadata=args.roi_metadata, clahe=args.clahe, **config.items)
 
     else:
 
