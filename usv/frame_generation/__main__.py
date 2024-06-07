@@ -186,7 +186,7 @@ Worker 5: 100%|█████████████████████�
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)
-
+    config = _Config(args.config)
     if args.task == 'dicom':
 
         input_dir = Path(str(args.input_dir))
@@ -205,7 +205,6 @@ Worker 5: 100%|█████████████████████�
             f"Config file `{args.config}` not found."
 
         input_dir = read_DICOM_dir(args.input_dir)
-        config = _Config(args.config)
         task = tasks.get(args.task, getFrames)  # Default: generate frames
 
         batch_process(input_dir,
