@@ -26,7 +26,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('input_folder', type=str,
                         help='Folder containing annotation zip files.')
-    parser.add_argument('config_file', type=str, default='skip.yml'
+    parser.add_argument('config_file', type=str, default='skip.yml',
                         help='Config file in YML format')
     parser.add_argument('--output_config', '-o', type=str, default='output_config.yml',
                         help='Directory for outputs. Default: `output.config')
