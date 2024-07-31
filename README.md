@@ -1,11 +1,7 @@
 # Pyrestus: Python Research Tools for Ultrasonography in Swallowing
 
 This is a research tool package being developed for studying Ultrasound Imaging.
-The package offers the following functionalities:
 
-- [Randomization of Ultrasound Images](randomize/README.md)
-- [Extraction of Raw Segmentation](compareimages/README.md#Extraction-of-Raw-Segmentation)
-- [Evaluation Metrics for Segmentation](compareimages/README.md#Evaluation-Metrics)
 
 
 ## Dependencies
@@ -42,3 +38,9 @@ The package offers the following functionalities:
 3. Open Command Prompt
 
 4. Type `python -m pip install -r requirements-core.txt`
+
+#### Legacy modules:
+
+- [Randomization of Ultrasound Images](randomize/README.md)
+- [Extraction of Raw Segmentation](compareimages/README.md#Extraction-of-Raw-Segmentation)
+- [Evaluation Metrics for Segmentation](compareimages/README.md#Evaluation-Metrics)
