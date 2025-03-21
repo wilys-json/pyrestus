@@ -22,7 +22,7 @@ This is a research tool package being developed for studying Ultrasound Imaging.
 
 ### MacOS
 
-1. Clone this repository: `git clone https://github.com/wlamuchk/DataProcessing`
+1. Clone this repository: `git clone https://github.com/wilys-json/pyrestus`
 
 2. Open Terminal, navigate to the program directory
 
@@ -31,7 +31,7 @@ This is a research tool package being developed for studying Ultrasound Imaging.
 
 ### Windows
 
-1. Clone this repository: `git clone https://github.com/wlamuchk/DataProcessing`
+1. Clone this repository: `git clone https://github.com/wilys-json/pyrestus`
 
 2. Dowload and install [Python3](https://www.python.org/ftp/python/3.8.9/python-3.8.9-amd64.exe)
 

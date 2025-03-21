@@ -74,7 +74,9 @@ class SKIP:
                     img = np.array(Image.open(f))
                 
                 # Create a copy of the image for the segmentation overlay
-                overlay_img = cv2.cvtColor(img.copy(), cv2.COLOR_GRAY2BGR)
+                overlay_img = img.copy()
+                if len(overlay_img.shape) == 2:
+                    overlay_img = cv2.cvtColor(overlay_img.copy(), cv2.COLOR_GRAY2BGR)
                 
                 # Get the annotations for the current image
                 ann_ids = coco.getAnnIds(imgIds=img_id)

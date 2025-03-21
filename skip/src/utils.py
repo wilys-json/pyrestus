@@ -19,7 +19,11 @@ def catNameToAnns(coco_obj, catName):
     catIndex = list(coco_obj.catToImgs.keys()).index(catId)
     imgIds = coco_obj.catToImgs[catId]
     for i in imgIds:
-        anns += [coco_obj.anns[coco_obj.getAnnIds(i)[catIndex]]]
+        try:
+            anns += [coco_obj.anns[coco_obj.getAnnIds(i)[catIndex]]]
+        except:
+            print(f'{catName} not found in annotation.')
+            continue
     return anns
 
 def get_coords(obj, structure):

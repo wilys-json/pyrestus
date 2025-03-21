@@ -23,7 +23,7 @@
 #################################################################################
 from abc import ABC, abstractmethod
 from ..utils import get_tag, get_frame_size
-from ...usv import read_DICOM_dir
+from ....usv import read_DICOM_dir
 import pandas as pd
 from copy import deepcopy
 from tqdm import tqdm

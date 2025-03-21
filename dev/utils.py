@@ -5,6 +5,7 @@ import tempfile
 import zipfile
 from radiomics import featureextractor
 import SimpleITK as sitk
+import cv2
 
 
 def compute_GLCM(**kwargs):
@@ -82,6 +83,8 @@ def extract_features(input_zip, funcs):
                     img_path = f"images/{img_info['file_name']}"
                     with zip_file.open(img_path) as f:
                         img = np.array(Image.open(f))
+                        if len(img.shape) > 2:
+                              img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     
                     # Get the annotations for the current image
                     ann_ids = coco.getAnnIds(imgIds=img_id)
