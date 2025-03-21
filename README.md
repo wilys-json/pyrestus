@@ -41,6 +41,6 @@ This is a research tool package being developed for studying Ultrasound Imaging.
 
 #### Legacy modules:
 
-- [Randomization of Ultrasound Images](randomize/README.md)
-- [Extraction of Raw Segmentation](compareimages/README.md#Extraction-of-Raw-Segmentation)
-- [Evaluation Metrics for Segmentation](compareimages/README.md#Evaluation-Metrics)
+- [Randomization of Ultrasound Images](legacy/randomize/README.md)
+- [Extraction of Raw Segmentation](legacy/compareimages/README.md#Extraction-of-Raw-Segmentation)
+- [Evaluation Metrics for Segmentation](legacy/compareimages/README.md#Evaluation-Metrics)
