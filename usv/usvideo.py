@@ -191,7 +191,11 @@ class UltrasoundVideoBase(FileDataset):
         Data getter function.
         """
         if hasattr(self, 'pixel_array'):
-            return self.pixel_array
+            if len(self.pixel_array.shape) == US_COLOR_VIDEO_DIM:
+                return self.pixel_array
+            else:
+                assert len(self.pixel_array.shape) == 3
+                return np.expand_dims(self.pixel_array, axis=0)
         return np.array([], dtype=np.uint8)
 
     def empty(self) -> bool:
@@ -205,7 +209,8 @@ class UltrasoundVideoBase(FileDataset):
         """
         Check if data contains video pixel array.
         """
-        return len(self.data.shape) == US_COLOR_VIDEO_DIM
+        return len(self.pixel_array.shape) == US_COLOR_VIDEO_DIM
+
 
 
 @dataclass
@@ -353,8 +358,13 @@ class UltrasoundVideoIO(UltrasoundVideoBase):
         save_dir = self.output_dir / f'{filename}'
         if save_dir.exists():
             return None
-        save_dir.mkdir(parents=True)
+        if kwargs.get('static', False) is False:
+            save_dir.mkdir(parents=True)
         pad = len(str(len(self.data)))
+
+        if kwargs.get('static'):
+            return (lambda image:
+                    cv2.imwrite(f'{self.output_dir}/{filename}.{image_format}', image))
 
         return (lambda i, image:
                 cv2.imwrite(f'{save_dir}/{str(i).zfill(pad)}.{image_format}',
@@ -556,43 +566,47 @@ please use `frame_generation  -o [output_dir] -m` to generate a cach file first.
                                            output_dir=self.output_dir,
                                            **kwargs)
 
-        if ultrasound_video.is_video:
-            writers = USVBatchConverter.create_writers(ultrasound_video,
-                                                       self.output_formats,
-                                                       processing=processing,
-                                                       **kwargs)
-            if kwargs.get('roi_metadata'):
-                if set(self.output_formats).intersection(IMAGE_FORMATS):
-                    filename = format_filename(ultrasound_video.name,
-                                               ultrasound_video.pid,
-                                               ultrasound_video.start_time)
-                    output_dir = self.output_dir / filename
-                    output_dir.mkdir(parents=True, exist_ok=True)
-                    output_pth = output_dir / 'roi_metadata.yml'
-                    roi_metadata = format_sequence_info(input_file)
-                    with open(str(output_pth), 'w') as output_file:
-                        yaml.dump(roi_metadata, output_file)
+        writers = USVBatchConverter.create_writers(ultrasound_video,
+                                                    self.output_formats,
+                                                    processing=processing,
+                                                    static=(ultrasound_video.is_video == False),
+                                                    **kwargs)
 
-            if not any(writers) :
-                return
-            for i, frame in enumerate(ultrasound_video.data):
-                frame = ultrasound_video.process(frame, processing)
-                if use_clahe:
-                    frame = clahe(frame)
-                for writer in writers:
-                    if writer is None: continue
-                    try:
-                        writer.write(frame)
-                    except AttributeError:
-                        try:
-                            writer(i, frame)
-                        except TypeError:
-                            writer(frame)
+        if kwargs.get('roi_metadata'):
+            if set(self.output_formats).intersection(IMAGE_FORMATS):
+                filename = format_filename(ultrasound_video.name,
+                                            ultrasound_video.pid,
+                                            ultrasound_video.start_time)
+                output_dir = self.output_dir / filename
+                output_dir.mkdir(parents=True, exist_ok=True)
+                output_pth = output_dir / 'roi_metadata.yml'
+                roi_metadata = format_sequence_info(input_file)
+                with open(str(output_pth), 'w') as output_file:
+                    yaml.dump(roi_metadata, output_file)
+
+        if not any(writers) :
+            return
+        
+        for i, frame in enumerate(ultrasound_video.data):
+            frame = ultrasound_video.process(frame, processing)
+            if use_clahe:
+                frame = clahe(frame)
             for writer in writers:
+                if writer is None: continue
                 try:
-                    writer.release()
+                    writer.write(frame)
                 except AttributeError:
-                    pass
+                    try:
+                        writer(i, frame)
+                    except TypeError:
+                        writer(frame)
+        for writer in writers:
+            try:
+                writer.release()
+            except AttributeError:
+                pass
+        
+        
 
     def batch_convert(self, batch: list, **kwargs):
         [self.convert(file, **kwargs) for file in batch]

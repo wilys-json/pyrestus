@@ -70,6 +70,8 @@ def getFrames(file: Path,
         cap.release()
         cv2.destroyAllWindows()
 
+def getFrame(): pass
+
 
 def getVideos(file: Path,
               output_dir: Path,
@@ -178,7 +180,7 @@ Worker 5: 100%|█████████████████████�
 
     tasks = {
         "videos" : getVideos,
-        "frames" : getFrames,
+        "frames" : getFrames
     }
 
     assert Path(args.input_dir).is_dir(), \
